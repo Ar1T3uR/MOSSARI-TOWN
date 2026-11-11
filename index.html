@@ -63,27 +63,57 @@
             align-items: center;
             border: 1px solid rgba(255,255,255,0.08);
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            gap: 10px;
         }
 
         .brand-logo {
             font-weight: 800;
             letter-spacing: 2px;
-            font-size: 15px;
+            font-size: 14px;
             text-transform: uppercase;
+            white-space: nowrap;
         }
 
         .brand-logo span {
             color: #c5a059;
         }
 
+        /* Переключатель режимов */
+        .mode-switcher {
+            display: flex;
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            padding: 3px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 9px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: #c5a059;
+            color: #1a1a24;
+            box-shadow: 0 2px 10px rgba(197, 160, 89, 0.4);
+        }
+
         .user-info {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             color: #c5a059;
             background: rgba(197, 160, 89, 0.15);
             padding: 5px 10px;
             border-radius: 20px;
             border: 1px solid rgba(197, 160, 89, 0.3);
+            white-space: nowrap;
         }
 
         .bottom-ui {
@@ -159,41 +189,6 @@
             margin-bottom: 3px;
         }
 
-        /* Кнопки зума справа сбоку */
-        .zoom-controls {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 20;
-        }
-
-        .zoom-btn {
-            width: 46px;
-            height: 46px;
-            background: rgba(20, 20, 28, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 50%;
-            color: white;
-            font-size: 22px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-        }
-
-        .zoom-btn:active {
-            transform: scale(0.92);
-            background: rgba(197, 160, 89, 0.3);
-            border-color: #c5a059;
-        }
-
         .instruction {
             text-align: center;
             background: rgba(0,0,0,0.6);
@@ -213,20 +208,21 @@
 
     <div id="canvas-container"></div>
 
-    <!-- Кнопки зума справа сбоку -->
-    <div class="zoom-controls interactive">
-        <div class="zoom-btn" onclick="zoomIn()">+</div>
-        <div class="zoom-btn" onclick="zoomOut()">−</div>
-    </div>
-
     <div class="ui-layer">
         <header class="interactive">
             <div class="brand-logo">mossari <span>town</span></div>
+            
+            <!-- Переключатель режимов -->
+            <div class="mode-switcher">
+                <button id="btnModeView" class="mode-btn active" onclick="setInteractionMode('view')">👁️ Обзор</button>
+                <button id="btnModeBuild" class="mode-btn" onclick="setInteractionMode('build')">🔨 Стройка</button>
+            </div>
+
             <div class="user-info" id="username">Гость</div>
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Двигайте карту 1 пальцем, зумируйте щипком 2 пальцев!</div>
+            <div class="instruction" id="instructionText">Режим обзора: карта свободно вращается и перемещается.</div>
             
             <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -296,6 +292,20 @@
         }
 
         let currentTool = 'house';
+        let interactionMode = 'view'; // 'view' (просмотр) или 'build' (постройка)
+
+        function setInteractionMode(mode) {
+            interactionMode = mode;
+            document.getElementById('btnModeView').classList.toggle('active', mode === 'view');
+            document.getElementById('btnModeBuild').classList.toggle('active', mode === 'build');
+
+            const instr = document.getElementById('instructionText');
+            if (mode === 'view') {
+                instr.innerText = 'Режим обзора: карта свободно перемещается и зумируется без случайных кликов.';
+            } else {
+                instr.innerText = 'Режим постройки: тапайте по полю для установки или удаления предметов.';
+            }
+        }
 
         function toggleFenceMenu() {
             const subMenu = document.getElementById('fenceSubMenu');
@@ -331,6 +341,8 @@
                 if (btn) btn.classList.add('active');
                 document.getElementById('fenceSubMenu').classList.remove('active');
             }
+            // Автоматически переключаем в режим постройки при выборе инструмента
+            setInteractionMode('build');
         }
 
         // --- 3D МИР (Three.js) ---
@@ -354,20 +366,6 @@
             camera.lookAt(targetCenter);
         }
         updateCameraPosition();
-
-        function zoomIn() {
-            cameraRadius -= 3;
-            cameraHeight -= 2.5;
-            if (cameraRadius < 10) { cameraRadius = 10; cameraHeight = 8; }
-            updateCameraPosition();
-        }
-
-        function zoomOut() {
-            cameraRadius += 4;
-            cameraHeight += 3.5;
-            if (cameraRadius > 70) { cameraRadius = 70; cameraHeight = 60; }
-            updateCameraPosition();
-        }
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(width, height);
@@ -651,7 +649,7 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ: ПЕРЕМЕЩЕНИЕ И МАСШТАБИРОВАНИЕ ПАЛЬЦАМИ (PINCH-TO-ZOOM) ---
+        // --- ЛОГИКА УПРАВЛЕНИЯ, СТАВКИ И УДАЛЕНИЯ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -664,7 +662,121 @@
         let startCameraRadius = cameraRadius;
         let startCameraHeight = cameraHeight;
 
+        function handleInteractionAction(clientX, clientY) {
+            // Если включен режим просмотра — тапы по земле не ставят и не удаляют предметы
+            if (interactionMode !== 'build') return;
+
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(ground);
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+
+                if (currentTool === 'eraser') {
+                    if (placedObjects.length > 0) {
+                        let closestObj = null;
+                        let minDist = 1.2;
+                        let closestIndex = -1;
+
+                        placedObjects.forEach((item, idx) => {
+                            const dist = item.mesh.position.distanceTo(intersect.point);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                closestObj = item;
+                                closestIndex = idx;
+                            }
+                        });
+
+                        if (closestObj) {
+                            scene.remove(closestObj.mesh);
+                            placedObjects.splice(closestIndex, 1);
+                            saveGame();
+                        }
+                    }
+                } else {
+                    let posX = intersect.point.x;
+                    let posZ = intersect.point.z;
+                    let snapRotation = 0;
+
+                    if (isFenceOrGate(currentTool)) {
+                        const step = 1.2;
+                        const gridX = Math.round(posX / step) * step;
+                        const gridZ = Math.round(posZ / step) * step;
+
+                        let hasLeft = false, hasRight = false, hasUp = false, hasDown = false;
+
+                        placedObjects.forEach(item => {
+                            if (isFenceOrGate(item.type)) {
+                                const px = item.mesh.position.x;
+                                const pz = item.mesh.position.z;
+                                if (Math.abs(px - (gridX - step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasLeft = true;
+                                if (Math.abs(px - (gridX + step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasRight = true;
+                                if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ - step)) < 0.15) hasUp = true;
+                                if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ + step)) < 0.15) hasDown = true;
+                            }
+                        });
+
+                        if ((hasUp || hasDown) && !(hasLeft || hasRight)) {
+                            snapRotation = Math.PI / 2;
+                        } else if ((hasLeft || hasRight) && !(hasUp || hasDown)) {
+                            snapRotation = 0;
+                        } else if (hasUp || hasDown) {
+                            snapRotation = Math.PI / 2;
+                        } else if (hasLeft || hasRight) {
+                            snapRotation = 0;
+                        } else {
+                            let nearestFence = null;
+                            let minD = 2.0;
+                            placedObjects.forEach(item => {
+                                if (isFenceOrGate(item.type)) {
+                                    const d = item.mesh.position.distanceTo(new THREE.Vector3(gridX, 0, gridZ));
+                                    if (d < minD) {
+                                        minD = d;
+                                        nearestFence = item;
+                                    }
+                                }
+                            });
+
+                            if (nearestFence) {
+                                snapRotation = nearestFence.mesh.rotation.y;
+                            } else {
+                                snapRotation = 0;
+                            }
+                        }
+
+                        posX = gridX;
+                        posZ = gridZ;
+                    }
+
+                    let tooClose = false;
+                    placedObjects.forEach(item => {
+                        const minDist = isFenceOrGate(currentTool) ? 0.6 : 
+                                      (currentTool === 'mall' || currentTool === 'admin' ? 3.0 : 1.0);
+                        if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
+                            tooClose = true;
+                        }
+                    });
+
+                    if (!tooClose) {
+                        const model = createModel(currentTool);
+                        model.position.set(posX, 0, posZ);
+                        if (isFenceOrGate(currentTool)) {
+                            model.rotation.y = snapRotation;
+                        }
+                        scene.add(model);
+                        placedObjects.push({ type: currentTool, mesh: model });
+                        saveGame();
+                    }
+                }
+            }
+        }
+
+        // Обработка касаний (Touch)
         window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.interactive')) return;
             if (e.touches.length === 2) {
                 isDragging = false;
                 initialPinchDistance = Math.hypot(
@@ -674,7 +786,6 @@
                 startCameraRadius = cameraRadius;
                 startCameraHeight = cameraHeight;
             } else if (e.touches.length === 1) {
-                if (e.target.closest('.interactive') || e.target.closest('.zoom-controls')) return;
                 isDragging = true;
                 hasMoved = false;
                 pointerDownPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -698,7 +809,7 @@
                 const touch = e.touches[0];
                 const dx = touch.clientX - pointerDownPos.x;
                 const dy = touch.clientY - pointerDownPos.y;
-                if (Math.sqrt(dx * dx + dy * dy) > 4) {
+                if (Math.sqrt(dx * dx + dy * dy) > 5) {
                     hasMoved = true;
                 }
 
@@ -721,15 +832,23 @@
             if (e.touches.length < 2) {
                 initialPinchDistance = null;
             }
+            if (isDragging && !hasMoved) {
+                if (!e.target.closest('.interactive') && !e.target.closest('header')) {
+                    const lastTouch = e.changedTouches[0];
+                    if (lastTouch) {
+                        handleInteractionAction(lastTouch.clientX, lastTouch.clientY);
+                    }
+                }
+            }
             if (e.touches.length === 0) {
                 isDragging = false;
             }
         });
 
-        // Мышь для десктопа
+        // Обработка мыши (Desktop)
         window.addEventListener('pointerdown', (e) => {
-            if (e.pointerType === 'touch') return; // обрабатывается в touchstart
-            if (e.target.closest('.interactive') || e.target.closest('.zoom-controls')) return;
+            if (e.pointerType === 'touch') return;
+            if (e.target.closest('.interactive')) return;
             isDragging = true;
             hasMoved = false;
             pointerDownPos = { x: e.clientX, y: e.clientY };
@@ -742,7 +861,7 @@
 
             const dx = e.clientX - pointerDownPos.x;
             const dy = e.clientY - pointerDownPos.y;
-            if (Math.sqrt(dx * dx + dy * dy) > 4) {
+            if (Math.sqrt(dx * dx + dy * dy) > 5) {
                 hasMoved = true;
             }
 
@@ -766,117 +885,10 @@
             isDragging = false;
 
             if (!hasMoved) {
-                if (e.target.closest('.interactive') || e.target.closest('header') || e.target.closest('.zoom-controls')) {
+                if (e.target.closest('.interactive') || e.target.closest('header')) {
                     return;
                 }
-
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(ground);
-
-                if (intersects.length > 0) {
-                    const intersect = intersects[0];
-
-                    if (currentTool === 'eraser') {
-                        if (placedObjects.length > 0) {
-                            let closestObj = null;
-                            let minDist = 1.2;
-                            let closestIndex = -1;
-
-                            placedObjects.forEach((item, idx) => {
-                                const dist = item.mesh.position.distanceTo(intersect.point);
-                                if (dist < minDist) {
-                                    minDist = dist;
-                                    closestObj = item;
-                                    closestIndex = idx;
-                                }
-                            });
-
-                            if (closestObj) {
-                                scene.remove(closestObj.mesh);
-                                placedObjects.splice(closestIndex, 1);
-                                saveGame();
-                            }
-                        }
-                    } else {
-                        let posX = intersect.point.x;
-                        let posZ = intersect.point.z;
-                        let snapRotation = 0;
-
-                        if (isFenceOrGate(currentTool)) {
-                            const step = 1.2;
-                            const gridX = Math.round(posX / step) * step;
-                            const gridZ = Math.round(posZ / step) * step;
-
-                            let hasLeft = false, hasRight = false, hasUp = false, hasDown = false;
-
-                            placedObjects.forEach(item => {
-                                if (isFenceOrGate(item.type)) {
-                                    const px = item.mesh.position.x;
-                                    const pz = item.mesh.position.z;
-                                    if (Math.abs(px - (gridX - step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasLeft = true;
-                                    if (Math.abs(px - (gridX + step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasRight = true;
-                                    if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ - step)) < 0.15) hasUp = true;
-                                    if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ + step)) < 0.15) hasDown = true;
-                                }
-                            });
-
-                            if ((hasUp || hasDown) && !(hasLeft || hasRight)) {
-                                snapRotation = Math.PI / 2;
-                            } else if ((hasLeft || hasRight) && !(hasUp || hasDown)) {
-                                snapRotation = 0;
-                            } else if (hasUp || hasDown) {
-                                snapRotation = Math.PI / 2;
-                            } else if (hasLeft || hasRight) {
-                                snapRotation = 0;
-                            } else {
-                                let nearestFence = null;
-                                let minD = 2.0;
-                                placedObjects.forEach(item => {
-                                    if (isFenceOrGate(item.type)) {
-                                        const d = item.mesh.position.distanceTo(new THREE.Vector3(gridX, 0, gridZ));
-                                        if (d < minD) {
-                                            minD = d;
-                                            nearestFence = item;
-                                        }
-                                    }
-                                });
-
-                                if (nearestFence) {
-                                    snapRotation = nearestFence.mesh.rotation.y;
-                                } else {
-                                    snapRotation = 0;
-                                }
-                            }
-
-                            posX = gridX;
-                            posZ = gridZ;
-                        }
-
-                        // Проверка на наложение объектов
-                        let tooClose = false;
-                        placedObjects.forEach(item => {
-                            const minDist = isFenceOrGate(currentTool) ? 0.6 : 
-                                          (currentTool === 'mall' || currentTool === 'admin' ? 3.0 : 1.0);
-                            if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
-                                tooClose = true;
-                            }
-                        });
-
-                        if (!tooClose) {
-                            const model = createModel(currentTool);
-                            model.position.set(posX, 0, posZ);
-                            if (isFenceOrGate(currentTool)) {
-                                model.rotation.y = snapRotation;
-                            }
-                            scene.add(model);
-                            placedObjects.push({ type: currentTool, mesh: model });
-                            saveGame();
-                        }
-                    }
-                }
+                handleInteractionAction(e.clientX, e.clientY);
             }
         });
 
@@ -903,3 +915,6 @@
             renderer.render(scene, camera);
         }
         animate();
+    </script>
+</body>
+</html>
