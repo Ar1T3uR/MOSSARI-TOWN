@@ -132,24 +132,6 @@
             pointer-events: auto;
         }
 
-        .sub-menu {
-            display: none;
-            background: rgba(20, 20, 28, 0.95);
-            backdrop-filter: blur(12px);
-            padding: 8px;
-            border-radius: 16px;
-            gap: 8px;
-            border: 1px solid rgba(197, 160, 89, 0.3);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-            overflow-x: auto;
-            max-width: 100%;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .sub-menu.active {
-            display: flex;
-        }
-
         .toolbar {
             background: rgba(20, 20, 28, 0.9);
             backdrop-filter: blur(12px);
@@ -166,7 +148,7 @@
             touch-action: pan-x;
         }
 
-        .toolbar::-webkit-scrollbar, .sub-menu::-webkit-scrollbar {
+        .toolbar::-webkit-scrollbar {
             display: none;
         }
 
@@ -174,7 +156,7 @@
             background: rgba(255,255,255,0.04);
             border: 2px solid rgba(255,255,255,0.08);
             border-radius: 14px;
-            padding: 8px 6px;
+            padding: 8px 10px;
             flex: 0 0 auto;
             min-width: 65px;
             text-align: center;
@@ -223,39 +205,11 @@
         <div></div>
 
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Город разделен на участки дорогами. Предметы ставятся в квадраты сетки.</div>
+            <div class="instruction" id="instructionText">Город разделен на районы с дорогами. Дороги неизменяемы.</div>
             
             <!-- Панель предметов -->
             <div id="buildPanel" class="build-panel-container interactive">
-                <!-- Выпадающее подменю для заборов и калиток -->
-                <div id="fenceSubMenu" class="sub-menu interactive">
-                    <div class="tool-btn" id="btn_fence_wood" onclick="selectFence('fence_wood')">
-                        <span class="icon">🪵</span>Забор
-                    </div>
-                    <div class="tool-btn" id="btn_gate_wood" onclick="selectFence('gate_wood')">
-                        <span class="icon">🚪</span>Калитка
-                    </div>
-                    <div class="tool-btn" id="btn_fence_stone" onclick="selectFence('fence_stone')">
-                        <span class="icon">🏛️</span>Бордюр
-                    </div>
-                    <div class="tool-btn" id="btn_gate_stone" onclick="selectFence('gate_stone')">
-                        <span class="icon">🏛️🚪</span>Вх.бордюр
-                    </div>
-                    <div class="tool-btn" id="btn_fence_hedge" onclick="selectFence('fence_hedge')">
-                        <span class="icon">🌿</span>Изгородь
-                    </div>
-                    <div class="tool-btn" id="btn_gate_hedge" onclick="selectFence('gate_hedge')">
-                        <span class="icon">🌿🚪</span>Вх.изгородь
-                    </div>
-                    <div class="tool-btn" id="btn_fence_mossari" onclick="selectFence('fence_mossari')">
-                        <span class="icon">✨</span>Mossari
-                    </div>
-                    <div class="tool-btn" id="btn_gate_mossari" onclick="selectFence('gate_mossari')">
-                        <span class="icon">✨🚪</span>Mossari калитка
-                    </div>
-                </div>
-
-                <!-- Главная панель инструментов -->
+                <!-- Главная панель инструментов (без ограждений) -->
                 <div class="toolbar interactive">
                     <div class="tool-btn active" id="btn_house" onclick="setTool('house')">
                         <span class="icon">🏠</span>Дом
@@ -268,15 +222,6 @@
                     </div>
                     <div class="tool-btn" id="btn_tree" onclick="setTool('tree')">
                         <span class="icon">🌲</span>Дерево
-                    </div>
-                    <div class="tool-btn" id="btn_road" onclick="setTool('road')">
-                        <span class="icon">🛤️</span>Дорога
-                    </div>
-                    <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
-                        <span class="icon">🚧</span>Ограждение
-                    </div>
-                    <div class="tool-btn" id="btn_rotate_fence" onclick="toggleFenceRotation()" style="display:none; border-color:#c5a059;">
-                        <span class="icon" id="rotateIcon">🔄</span><span id="rotateLabel">Гор.</span>
                     </div>
                     <div class="tool-btn" id="btn_eraser" onclick="setTool('eraser')">
                         <span class="icon">❌</span>Удалить
@@ -303,7 +248,6 @@
 
         let currentTool = 'house';
         let interactionMode = 'view';
-        let fenceRotation = 0;
 
         function setInteractionMode(mode) {
             interactionMode = mode;
@@ -315,59 +259,20 @@
 
             if (mode === 'view') {
                 buildPanel.classList.remove('active');
-                document.getElementById('fenceSubMenu').classList.remove('active');
                 instr.innerText = 'Режим обзора: карта свободно перемещается и зумируется.';
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = false;
             } else {
                 buildPanel.classList.add('active');
-                instr.innerText = 'Режим постройки: предметы привязываются к квадратам сетки.';
+                instr.innerText = 'Режим постройки: здания размещаются на участках.';
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = true;
             }
-        }
-
-        function toggleFenceMenu() {
-            const subMenu = document.getElementById('fenceSubMenu');
-            subMenu.classList.toggle('active');
-        }
-
-        function toggleFenceRotation() {
-            fenceRotation = (fenceRotation === 0) ? Math.PI / 2 : 0;
-            const label = document.getElementById('rotateLabel');
-            label.innerText = fenceRotation === 0 ? 'Гор.' : 'Верт.';
-        }
-
-        function selectFence(fenceType) {
-            setTool(fenceType);
-            const icons = {
-                'fence_wood': '🪵',
-                'gate_wood': '🚪',
-                'fence_stone': '🏛️',
-                'gate_stone': '🏛️🚪',
-                'fence_hedge': '🌿',
-                'gate_hedge': '🌿🚪',
-                'fence_mossari': '✨',
-                'gate_mossari': '✨🚪'
-            };
-            document.getElementById('btn_fence_main').querySelector('.icon').innerText = icons[fenceType] || '🚧';
-            document.getElementById('fenceSubMenu').classList.remove('active');
         }
 
         function setTool(tool) {
             currentTool = tool;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            
-            const rotateBtn = document.getElementById('btn_rotate_fence');
-            if (tool.startsWith('fence_') || tool.startsWith('gate_')) {
-                document.getElementById('btn_fence_main').classList.add('active');
-                const btn = document.getElementById('btn_' + tool);
-                if (btn) btn.classList.add('active');
-                rotateBtn.style.display = 'block';
-            } else {
-                const btn = document.getElementById('btn_' + tool);
-                if (btn) btn.classList.add('active');
-                document.getElementById('fenceSubMenu').classList.remove('active');
-                rotateBtn.style.display = 'none';
-            }
+            const btn = document.getElementById('btn_' + tool);
+            if (btn) btn.classList.add('active');
             setInteractionMode('build');
         }
 
@@ -450,17 +355,12 @@
         const placedObjects = [];
         const CELL_SIZE = 1.2;
 
-        function isFenceOrGate(type) {
-            return type.startsWith('fence_') || type.startsWith('gate_');
-        }
-
-        function getObjectSizeInCells(type, rotY = 0) {
+        function getObjectSizeInCells(type) {
             if (type === 'mall') return { w: 4, h: 4 };
             if (type === 'admin') return { w: 3, h: 3 };
             return { w: 1, h: 1 };
         }
 
-        // Создание моделей с центрированием внутри квадрата (тайла) 1.2x1.2
         function createModel(type) {
             const group = new THREE.Group();
             const innerGroup = new THREE.Group();
@@ -617,68 +517,13 @@
                 leaf3.castShadow = true;
                 innerGroup.add(leaf3);
             }
-            else if (isFenceOrGate(type)) {
-                // Ограждения теперь центрируются внутри квадрата 1.2x1.2
-                const isGate = type.startsWith('gate_');
-                const baseType = type.replace('gate_', 'fence_');
-
-                const mat = baseType === 'fence_stone' ? new THREE.MeshStandardMaterial({ color: 0x707070 }) :
-                            baseType === 'fence_hedge' ? new THREE.MeshStandardMaterial({ color: 0x2e6b3e }) :
-                            baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0x181818 }) :
-                            new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.7 });
-
-                if (!isGate) {
-                    if (baseType === 'fence_wood') {
-                        for (let i = -0.5; i <= 0.5; i += 0.33) {
-                            const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.65, 0.1), mat);
-                            post.position.set(i, 0.325, 0);
-                            post.castShadow = true;
-                            innerGroup.add(post);
-                        }
-                        const beam1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
-                        beam1.position.set(0, 0.48, 0);
-                        innerGroup.add(beam1);
-
-                        const beam2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
-                        beam2.position.set(0, 0.18, 0);
-                        innerGroup.add(beam2);
-                    } else if (baseType === 'fence_stone' || baseType === 'fence_hedge') {
-                        const geo = baseType === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
-                        const obj = new THREE.Mesh(geo, mat);
-                        obj.position.set(0, baseType === 'fence_stone' ? 0.2 : 0.35, 0);
-                        obj.castShadow = true;
-                        innerGroup.add(obj);
-                    } else if (baseType === 'fence_mossari') {
-                        const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.15), mat);
-                        bar.position.set(0, 0.25, 0);
-                        innerGroup.add(bar);
-                        const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7 }));
-                        top.position.set(0, 0.52, 0);
-                        innerGroup.add(top);
-                    }
-                } else {
-                    const postMat = mat;
-                    const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
-                    post1.position.set(-0.54, 0.325, 0);
-                    innerGroup.add(post1);
-
-                    const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
-                    post2.position.set(0.54, 0.325, 0);
-                    innerGroup.add(post2);
-
-                    const gateMat = baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.5 }) : postMat;
-                    const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.06), gateMat);
-                    gateDoor.position.set(0, 0.3, 0);
-                    innerGroup.add(gateDoor);
-                }
-            }
 
             innerGroup.position.set(-offsetX, 0, -offsetZ);
             group.add(innerGroup);
             return group;
         }
 
-        const SAVE_KEY = 'mossari_town_save_v12';
+        const SAVE_KEY = 'mossari_town_save_v13';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -690,67 +535,79 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
         }
 
-        // Автоматическая генерация сетки дорог, разделяющей город на равные кварталы
-        function generateDefaultRoads() {
-            const roads = [];
-            const minCoord = -24;
-            const maxCoord = 24;
-            const step = 6.0; // каждые 5 ячеек (5 * 1.2 = 6.0) прокладывается дорога
+        // Генерация четких районов с дорогами и участками
+        function generateDistrictLayout() {
+            const items = [];
+            const districtSize = 7.2; // размер одного района в ячейках (6 ячеек по 1.2)
+            const minC = -21.6;
+            const maxC = 21.6;
 
-            for (let x = minCoord; x <= maxCoord; x += CELL_SIZE) {
-                for (let z = minCoord; z <= maxCoord; z += CELL_SIZE) {
-                    if (Math.abs(x) % step === 0 || Math.abs(z) % step === 0 || x === minCoord || x === maxCoord || z === minCoord || z === maxCoord) {
-                        roads.push({ x: Math.round(x / CELL_SIZE) * CELL_SIZE, z: Math.round(z / CELL_SIZE) * CELL_SIZE });
+            // 1. Создаем неизменяемые дороги по периметрам и границам районов
+            for (let x = minC; x <= maxC; x += CELL_SIZE) {
+                for (let z = minC; z <= maxC; z += CELL_SIZE) {
+                    // Проверяем, является ли координата границей района (дорога)
+                    const isRoadX = Math.abs(x % districtSize) < 0.01;
+                    const isRoadZ = Math.abs(z % districtSize) < 0.01;
+
+                    if (isRoadX || isRoadZ || x === minC || x === maxC || z === minC || z === maxC) {
+                        const model = createModel('road');
+                        model.position.set(x, 0, z);
+                        scene.add(model);
+                        items.push({ type: 'road', mesh: model, isRoad: true });
                     }
                 }
             }
-            return roads;
+
+            // 2. Расставляем стартовые здания внутри участков районов
+            const starterBuildings = [
+                { type: 'house', x: -14.4, z: -14.4 },
+                { type: 'mall', x: -7.2, z: -14.4 },
+                { type: 'admin', x: 2.4, z: -14.4 },
+                { type: 'tree', x: -14.4, z: -7.2 },
+                { type: 'house', x: 2.4, z: -7.2 },
+                { type: 'house', x: -14.4, z: 2.4 },
+                { type: 'mall', x: -7.2, z: 2.4 },
+                { type: 'tree', x: 2.4, z: 2.4 }
+            ];
+
+            starterBuildings.forEach(b => {
+                const model = createModel(b.type);
+                model.position.set(b.x, 0, b.z);
+                scene.add(model);
+                items.push({ type: b.type, mesh: model, isRoad: false });
+            });
+
+            return items;
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v11') || localStorage.getItem('mossari_town_save_v10');
+            let savedData = localStorage.getItem(SAVE_KEY);
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
                     parsed.forEach(data => {
-                        let t = data.type;
-                        if (t === 'fence') t = 'fence_wood';
-                        const model = createModel(t);
+                        const model = createModel(data.type);
                         model.position.set(data.x, 0, data.z);
                         if (data.rotY !== undefined) model.rotation.y = data.rotY;
                         scene.add(model);
-                        placedObjects.push({ type: t, mesh: model });
+                        placedObjects.push({ 
+                            type: data.type, 
+                            mesh: model, 
+                            isRoad: (data.type === 'road') 
+                        });
                     });
                     return;
                 } catch(e) {}
             }
 
-            // Генерация дорожной сетки и стартовых зданий в кварталах
-            const defaultRoads = generateDefaultRoads();
-            defaultRoads.forEach(pos => {
-                const model = createModel('road');
-                model.position.set(pos.x, 0, pos.z);
-                scene.add(model);
-                placedObjects.push({ type: 'road', mesh: model });
-            });
-
-            const starterItems = [
-                { type: 'house', x: -7.2, z: -7.2 },
-                { type: 'house', x: 2.4, z: -7.2 },
-                { type: 'tree', x: -7.2, z: 2.4 },
-                { type: 'mall', x: 2.4, z: 2.4 }
-            ];
-            starterItems.forEach(item => {
-                const model = createModel(item.type);
-                model.position.set(item.x, 0, item.z);
-                scene.add(model);
-                placedObjects.push({ type: item.type, mesh: model });
-            });
+            // Если сохранения нет, генерируем карту районов с дорогами
+            const defaultLayout = generateDistrictLayout();
+            defaultLayout.forEach(item => placedObjects.push(item));
             saveGame();
         }
 
-        function checkCollision(posX, posZ, type, rotY = 0, excludeObj = null) {
-            const size = getObjectSizeInCells(type, rotY);
+        function checkCollision(posX, posZ, type, excludeObj = null) {
+            const size = getObjectSizeInCells(type);
             const myMinX = posX;
             const myMaxX = posX + size.w * CELL_SIZE;
             const myMinZ = posZ;
@@ -758,8 +615,7 @@
 
             for (let item of placedObjects) {
                 if (item === excludeObj) continue;
-                const otherRot = item.mesh.rotation.y;
-                const otherSize = getObjectSizeInCells(item.type, otherRot);
+                const otherSize = getObjectSizeInCells(item.type);
                 const otherMinX = item.mesh.position.x;
                 const otherMaxX = item.mesh.position.x + otherSize.w * CELL_SIZE;
                 const otherMinZ = item.mesh.position.z;
@@ -802,6 +658,7 @@
                     let closestIndex = -1;
 
                     placedObjects.forEach((item, idx) => {
+                        if (item.isRoad) return; // Дороги нельзя удалять!
                         const dist = item.mesh.position.distanceTo(intersects[0].point);
                         if (dist < minDist) {
                             minDist = dist;
@@ -834,6 +691,7 @@
 
                 const foundIndex = placedObjects.findIndex(item => item.mesh === hitMesh);
                 if (foundIndex !== -1) {
+                    if (placedObjects[foundIndex].isRoad) return; // Дороги нельзя двигать
                     draggedObject = placedObjects[foundIndex];
                     placedObjects.splice(foundIndex, 1);
                     return;
@@ -845,14 +703,12 @@
                 const intersect = intersectsGround[0];
                 let posX = Math.round(intersect.point.x / CELL_SIZE) * CELL_SIZE;
                 let posZ = Math.round(intersect.point.z / CELL_SIZE) * CELL_SIZE;
-                let rotY = isFenceOrGate(currentTool) ? fenceRotation : 0;
 
-                if (!checkCollision(posX, posZ, currentTool, rotY)) {
+                if (!checkCollision(posX, posZ, currentTool)) {
                     const model = createModel(currentTool);
                     model.position.set(posX, 0, posZ);
-                    model.rotation.y = rotY;
                     scene.add(model);
-                    placedObjects.push({ type: currentTool, mesh: model });
+                    placedObjects.push({ type: currentTool, mesh: model, isRoad: false });
                     saveGame();
                     
                     draggedObject = placedObjects[placedObjects.length - 1];
@@ -883,9 +739,8 @@
 
             let posX = draggedObject.mesh.position.x;
             let posZ = draggedObject.mesh.position.z;
-            let rotY = draggedObject.mesh.rotation.y;
 
-            if (checkCollision(posX, posZ, draggedObject.type, rotY, draggedObject)) {
+            if (checkCollision(posX, posZ, draggedObject.type, draggedObject)) {
                 scene.remove(draggedObject.mesh);
             } else {
                 placedObjects.push(draggedObject);
