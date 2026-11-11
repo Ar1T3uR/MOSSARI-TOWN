@@ -74,19 +74,46 @@
             border: 1px solid rgba(197, 160, 89, 0.3);
         }
 
+        /* Панель управления и подменю заборов */
+        .bottom-ui {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .sub-menu {
+            display: none;
+            background: rgba(20, 20, 28, 0.9);
+            backdrop-filter: blur(12px);
+            padding: 8px;
+            border-radius: 16px;
+            gap: 8px;
+            border: 1px solid rgba(197, 160, 89, 0.3);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .sub-menu.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .toolbar {
             background: rgba(20, 20, 28, 0.85);
             backdrop-filter: blur(12px);
-            padding: 12px;
+            padding: 10px 14px;
             border-radius: 20px;
             display: flex;
-            gap: 8px;
-            overflow-x: auto;
+            gap: 10px;
             border: 1px solid rgba(255,255,255,0.08);
-            max-width: 600px;
+            max-width: 420px;
             margin: 0 auto;
-            width: 100%;
-            box-sizing: border-box;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
         }
 
@@ -94,14 +121,14 @@
             background: rgba(255,255,255,0.04);
             border: 2px solid rgba(255,255,255,0.08);
             border-radius: 14px;
-            padding: 8px 6px;
+            padding: 8px 10px;
             flex: 1;
-            min-width: 68px;
+            min-width: 70px;
             text-align: center;
             cursor: pointer;
             color: white;
             transition: all 0.2s;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
         }
 
@@ -117,13 +144,48 @@
             margin-bottom: 3px;
         }
 
+        /* Кнопки зума справа сбоку */
+        .zoom-controls {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .zoom-btn {
+            width: 48px;
+            height: 48px;
+            background: rgba(20, 20, 28, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            transition: all 0.15s ease;
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.92);
+            background: rgba(197, 160, 89, 0.3);
+            border-color: #c5a059;
+        }
+
         .instruction {
             text-align: center;
             background: rgba(0,0,0,0.6);
             padding: 8px 16px;
             border-radius: 12px;
             font-size: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             align-self: center;
             backdrop-filter: blur(6px);
             border: 1px solid rgba(255,255,255,0.05);
@@ -137,35 +199,49 @@
 
     <div id="canvas-container"></div>
 
+    <!-- Кнопки зума справа сбоку -->
+    <div class="zoom-controls interactive">
+        <div class="zoom-btn" onclick="zoomIn()">+</div>
+        <div class="zoom-btn" onclick="zoomOut()">−</div>
+    </div>
+
     <div class="ui-layer">
         <header class="interactive">
             <div class="brand-logo">mossari <span>town</span></div>
             <div class="user-info" id="username">Гость</div>
         </header>
 
-        <div style="display: flex; flex-direction: column; width: 100%;">
-            <div class="instruction">Зумируйте карту скроллом/щипком, выбирайте заборы и стройте мир!</div>
+        <div class="bottom-ui">
+            <div class="instruction">Используйте зум справа или скролл. Выбирайте постройки!</div>
             
-            <div class="toolbar interactive">
-                <div class="tool-btn active" onclick="setTool('house')">
-                    <span class="icon">🏠</span>Дом
+            <!-- Выпадающее подменю для 4 вариантов заборов -->
+            <div id="fenceSubMenu" class="sub-menu interactive">
+                <div class="tool-btn" id="btn_fence_wood" onclick="selectFence('fence_wood')">
+                    <span class="icon">🪵</span>Дерево
                 </div>
-                <div class="tool-btn" onclick="setTool('tree')">
-                    <span class="icon">🌲</span>Дерево
-                </div>
-                <div class="tool-btn" onclick="setTool('fence_wood')">
-                    <span class="icon">🪵</span>Дерево забор
-                </div>
-                <div class="tool-btn" onclick="setTool('fence_stone')">
+                <div class="tool-btn" id="btn_fence_stone" onclick="selectFence('fence_stone')">
                     <span class="icon">🏛️</span>Бордюр
                 </div>
-                <div class="tool-btn" onclick="setTool('fence_hedge')">
+                <div class="tool-btn" id="btn_fence_hedge" onclick="selectFence('fence_hedge')">
                     <span class="icon">🌿</span>Изгородь
                 </div>
-                <div class="tool-btn" onclick="setTool('fence_mossari')">
+                <div class="tool-btn" id="btn_fence_mossari" onclick="selectFence('fence_mossari')">
                     <span class="icon">✨</span>Mossari
                 </div>
-                <div class="tool-btn" onclick="setTool('eraser')">
+            </div>
+
+            <!-- Главная панель инструментов -->
+            <div class="toolbar interactive">
+                <div class="tool-btn active" id="btn_house" onclick="setTool('house')">
+                    <span class="icon">🏠</span>Дом
+                </div>
+                <div class="tool-btn" id="btn_tree" onclick="setTool('tree')">
+                    <span class="icon">🌲</span>Дерево
+                </div>
+                <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
+                    <span class="icon">🚧</span>Забор
+                </div>
+                <div class="tool-btn" id="btn_eraser" onclick="setTool('eraser')">
                     <span class="icon">❌</span>Удалить
                 </div>
             </div>
@@ -184,6 +260,41 @@
 
         let currentTool = 'house';
 
+        // Управление подменю заборов
+        function toggleFenceMenu() {
+            const subMenu = document.getElementById('fenceSubMenu');
+            subMenu.classList.toggle('active');
+        }
+
+        function selectFence(fenceType) {
+            setTool(fenceType);
+            // Меняем иконку и подпись главной кнопки забора в зависимости от выбранного
+            const icons = {
+                'fence_wood': '🪵',
+                'fence_stone': '🏛️',
+                'fence_hedge': '🌿',
+                'fence_mossari': '✨'
+            };
+            document.getElementById('btn_fence_main').querySelector('.icon').innerText = icons[fenceType];
+            document.getElementById('fenceSubMenu').classList.remove('active');
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            
+            if (tool.startsWith('fence_')) {
+                document.getElementById('btn_fence_main').classList.add('active');
+                document.getElementById('btn_' + tool).classList.add('active');
+            } else {
+                const btn = document.getElementById('btn_' + tool);
+                if (btn) btn.classList.add('active');
+                if (!tool.startsWith('fence_')) {
+                    document.getElementById('fenceSubMenu').classList.remove('active');
+                }
+            }
+        }
+
         // Инициализация Three.js 3D мира
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
@@ -191,10 +302,9 @@
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
-        // Параметры камеры для управления зумом и вращением
-        let cameraRadius = 25; // Дистанция от центра (больше радиус — шире обзор)
-        let cameraAngle = 0;   // Угол вращения вокруг оси Y
-        let cameraHeight = 22; // Высота камеры
+        let cameraRadius = 28;
+        let cameraAngle = 0;
+        let cameraHeight = 25;
 
         function updateCameraPosition() {
             camera.position.x = Math.sin(cameraAngle) * cameraRadius;
@@ -203,6 +313,21 @@
             camera.lookAt(0, 0, 0);
         }
         updateCameraPosition();
+
+        // Функции кнопок зума справа
+        function zoomIn() {
+            cameraRadius -= 3;
+            if (cameraRadius < 8) cameraRadius = 8;
+            cameraHeight = cameraRadius * 0.9;
+            updateCameraPosition();
+        }
+
+        function zoomOut() {
+            cameraRadius += 3;
+            if (cameraRadius > 48) cameraRadius = 48;
+            cameraHeight = cameraRadius * 0.9;
+            updateCameraPosition();
+        }
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -217,7 +342,7 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Увеличенная лужайка (50x50 вместо 30x30)
+        // Увеличенная лужайка (50x50)
         const groundGeo = new THREE.PlaneGeometry(50, 50);
         const groundMat = new THREE.MeshStandardMaterial({ color: 0x24342b, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -227,7 +352,7 @@
 
         const placedObjects = [];
 
-        // Создание моделей (Дом, Дерево и 4 вида забора)
+        // Создание моделей
         function createModel(type) {
             const group = new THREE.Group();
 
@@ -292,10 +417,8 @@
                 leafCluster3.castShadow = true;
                 group.add(leafCluster3);
             }
-            // 1. Деревянный забор
             else if (type === 'fence_wood') {
                 const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 });
-                // Секция забора
                 for (let i = -0.5; i <= 0.5; i += 0.35) {
                     const postGeo = new THREE.BoxGeometry(0.1, 0.6, 0.1);
                     const post = new THREE.Mesh(postGeo, woodMat);
@@ -311,7 +434,6 @@
                 beam2.position.set(0, 0.15, 0);
                 group.add(beam2);
             }
-            // 2. Каменный бордюр
             else if (type === 'fence_stone') {
                 const stoneMat = new THREE.MeshStandardMaterial({ color: 0x707070, roughness: 0.6 });
                 const stoneGeo = new THREE.BoxGeometry(1.2, 0.4, 0.3);
@@ -320,7 +442,6 @@
                 stone.castShadow = true;
                 group.add(stone);
             }
-            // 3. Зеленая живая изгородь
             else if (type === 'fence_hedge') {
                 const hedgeMat = new THREE.MeshStandardMaterial({ color: 0x2e6b3e, roughness: 0.9 });
                 const hedgeGeo = new THREE.BoxGeometry(1.2, 0.7, 0.4);
@@ -329,7 +450,6 @@
                 hedge.castShadow = true;
                 group.add(hedge);
             }
-            // 4. Премиум ограда Mossari (Черная с золотом)
             else if (type === 'fence_mossari') {
                 const baseMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.3 });
                 const goldMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7, roughness: 0.2 });
@@ -348,37 +468,42 @@
             return group;
         }
 
-        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ---
+        // --- СОХРАНЕНИЕ И ЗАГРУЗКА (Безопасный постоянный ключ v4) ---
+        const SAVE_KEY = 'mossari_town_save_v4';
+
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
                 type: item.type,
                 x: item.mesh.position.x,
                 z: item.mesh.position.z
             }));
-            localStorage.setItem('mossari_town_save_v3', JSON.stringify(dataToSave));
+            localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
         }
 
         function loadGame() {
-            const savedData = localStorage.getItem('mossari_town_save_v3');
+            // Пытаемся загрузить с текущего ключа, а если пусто — пробуем подтянуть со старых версий, чтобы прогресс не пропал
+            let savedData = localStorage.getItem(SAVE_KEY);
+            if (!savedData) {
+                savedData = localStorage.getItem('mossari_town_save_v3') || localStorage.getItem('mossari_town_save_v2') || localStorage.getItem('mossari_town_save');
+            }
+
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
                     parsed.forEach(data => {
-                        const model = createModel(data.type);
+                        // Обратная совместимость старых названий заборов, если они были сохранены иначе
+                        let t = data.type;
+                        if (t === 'fence') t = 'fence_wood';
+                        
+                        const model = createModel(t);
                         model.position.set(data.x, 0, data.z);
                         scene.add(model);
-                        placedObjects.push({ type: data.type, mesh: model });
+                        placedObjects.push({ type: t, mesh: model });
                     });
                 } catch(e) {
                     console.error("Ошибка загрузки сохранения", e);
                 }
             }
-        }
-
-        function setTool(tool) {
-            currentTool = tool;
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            event.currentTarget.classList.add('active');
         }
 
         const raycaster = new THREE.Raycaster();
@@ -389,9 +514,8 @@
         let pointerDownPos = { x: 0, y: 0 };
         let previousMousePosition = { x: 0, y: 0 };
 
-        // Обработка вращения мыши / пальца
         window.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('.interactive')) return;
+            if (e.target.closest('.interactive') || e.target.closest('.zoom-controls')) return;
             isDragging = true;
             hasMoved = false;
             pointerDownPos = { x: e.clientX, y: e.clientY };
@@ -419,7 +543,7 @@
             isDragging = false;
 
             if (!hasMoved) {
-                if (e.target.closest('.interactive') || e.target.closest('header') || e.target.closest('.toolbar')) {
+                if (e.target.closest('.interactive') || e.target.closest('header') || e.target.closest('.zoom-controls')) {
                     return;
                 }
 
@@ -474,19 +598,17 @@
             }
         });
 
-        // Плавный зум (приближение и отдаление колесиком / жестами)
+        // Плавный зум колесиком мыши
         window.addEventListener('wheel', (e) => {
             cameraRadius += e.deltaY * 0.03;
-            // Ограничения приближения и отдаления
-            if (cameraRadius < 10) cameraRadius = 10;
-            if (cameraRadius > 45) cameraRadius = 45;
+            if (cameraRadius < 8) cameraRadius = 8;
+            if (cameraRadius > 48) cameraRadius = 48;
 
-            // Синхронизируем высоту с радиусом для красивого угла обзора
             cameraHeight = cameraRadius * 0.9;
             updateCameraPosition();
         }, { passive: true });
 
-        // Поддержка жестов Pinch (зум двумя пальцами на мобильных устройствах)
+        // Зумирование щипком двумя пальцами на мобильных
         let initialTouchDist = 0;
         window.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
@@ -505,8 +627,8 @@
                 );
                 const diff = initialTouchDist - currentDist;
                 cameraRadius += diff * 0.05;
-                if (cameraRadius < 10) cameraRadius = 10;
-                if (cameraRadius > 45) cameraRadius = 45;
+                if (cameraRadius < 8) cameraRadius = 8;
+                if (cameraRadius > 48) cameraRadius = 48;
 
                 cameraHeight = cameraRadius * 0.9;
                 updateCameraPosition();
