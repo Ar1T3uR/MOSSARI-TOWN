@@ -223,7 +223,7 @@
         <div></div>
 
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Поле разбито на кварталы дорогами. Выбирайте инструменты и стройте!</div>
+            <div class="instruction" id="instructionText">Город разделен на участки дорогами. Предметы ставятся в квадраты сетки.</div>
             
             <!-- Панель предметов -->
             <div id="buildPanel" class="build-panel-container interactive">
@@ -275,7 +275,6 @@
                     <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
                         <span class="icon">🚧</span>Ограждение
                     </div>
-                    <!-- Кнопка поворота забора -->
                     <div class="tool-btn" id="btn_rotate_fence" onclick="toggleFenceRotation()" style="display:none; border-color:#c5a059;">
                         <span class="icon" id="rotateIcon">🔄</span><span id="rotateLabel">Гор.</span>
                     </div>
@@ -321,7 +320,7 @@
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = false;
             } else {
                 buildPanel.classList.add('active');
-                instr.innerText = 'Режим постройки: участки разделены дорогами.';
+                instr.innerText = 'Режим постройки: предметы привязываются к квадратам сетки.';
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = true;
             }
         }
@@ -461,28 +460,27 @@
             return { w: 1, h: 1 };
         }
 
+        // Создание моделей с центрированием внутри квадрата (тайла) 1.2x1.2
         function createModel(type) {
             const group = new THREE.Group();
             const innerGroup = new THREE.Group();
 
-            let offsetX = 0, offsetZ = 0;
+            let offsetX = CELL_SIZE / 2;
+            let offsetZ = CELL_SIZE / 2;
 
             if (type === 'road') {
-                offsetX = 0; offsetZ = 0;
                 const roadMat = new THREE.MeshStandardMaterial({ color: 0x44444d, roughness: 0.9 });
                 const roadTile = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.03, 1.2), roadMat);
                 roadTile.position.y = 0.015;
                 roadTile.receiveShadow = true;
                 innerGroup.add(roadTile);
 
-                // Белая полоска посередине дороги
                 const stripeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
                 const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.035, 0.6), stripeMat);
                 stripe.position.y = 0.02;
                 innerGroup.add(stripe);
             }
             else if (type === 'house') {
-                offsetX = 0.6; offsetZ = 0.6;
                 const baseMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 });
                 const base = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.1, 1.2), baseMat);
                 base.position.y = 0.55;
@@ -510,7 +508,8 @@
                 innerGroup.add(win2);
             } 
             else if (type === 'mall') {
-                offsetX = 2.4; offsetZ = 2.4;
+                offsetX = (4 * CELL_SIZE) / 2;
+                offsetZ = (4 * CELL_SIZE) / 2;
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.2, 4.6), bodyMat);
                 body.position.y = 1.6;
@@ -550,7 +549,8 @@
                 innerGroup.add(sign);
             }
             else if (type === 'admin') {
-                offsetX = 1.8; offsetZ = 1.8;
+                offsetX = (3 * CELL_SIZE) / 2;
+                offsetZ = (3 * CELL_SIZE) / 2;
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3530, roughness: 0.4 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.6, 3.4), wallMat);
                 body.position.y = 1.3;
@@ -594,7 +594,6 @@
                 innerGroup.add(spire);
             }
             else if (type === 'tree') {
-                offsetX = 0.6; offsetZ = 0.6;
                 const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8), new THREE.MeshStandardMaterial({ color: 0x6e4727 }));
                 trunk.position.y = 0.4;
                 trunk.castShadow = true;
@@ -619,7 +618,7 @@
                 innerGroup.add(leaf3);
             }
             else if (isFenceOrGate(type)) {
-                offsetX = 0; offsetZ = 0;
+                // Ограждения теперь центрируются внутри квадрата 1.2x1.2
                 const isGate = type.startsWith('gate_');
                 const baseType = type.replace('gate_', 'fence_');
 
@@ -630,46 +629,46 @@
 
                 if (!isGate) {
                     if (baseType === 'fence_wood') {
-                        for (let i = 0.1; i <= 1.1; i += 0.33) {
+                        for (let i = -0.5; i <= 0.5; i += 0.33) {
                             const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.65, 0.1), mat);
                             post.position.set(i, 0.325, 0);
                             post.castShadow = true;
                             innerGroup.add(post);
                         }
                         const beam1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
-                        beam1.position.set(0.6, 0.48, 0);
+                        beam1.position.set(0, 0.48, 0);
                         innerGroup.add(beam1);
 
                         const beam2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
-                        beam2.position.set(0.6, 0.18, 0);
+                        beam2.position.set(0, 0.18, 0);
                         innerGroup.add(beam2);
                     } else if (baseType === 'fence_stone' || baseType === 'fence_hedge') {
                         const geo = baseType === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
                         const obj = new THREE.Mesh(geo, mat);
-                        obj.position.set(0.6, baseType === 'fence_stone' ? 0.2 : 0.35, 0);
+                        obj.position.set(0, baseType === 'fence_stone' ? 0.2 : 0.35, 0);
                         obj.castShadow = true;
                         innerGroup.add(obj);
                     } else if (baseType === 'fence_mossari') {
                         const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.15), mat);
-                        bar.position.set(0.6, 0.25, 0);
+                        bar.position.set(0, 0.25, 0);
                         innerGroup.add(bar);
                         const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7 }));
-                        top.position.set(0.6, 0.52, 0);
+                        top.position.set(0, 0.52, 0);
                         innerGroup.add(top);
                     }
                 } else {
                     const postMat = mat;
                     const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
-                    post1.position.set(0.06, 0.325, 0);
+                    post1.position.set(-0.54, 0.325, 0);
                     innerGroup.add(post1);
 
                     const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
-                    post2.position.set(1.14, 0.325, 0);
+                    post2.position.set(0.54, 0.325, 0);
                     innerGroup.add(post2);
 
                     const gateMat = baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.5 }) : postMat;
                     const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.06), gateMat);
-                    gateDoor.position.set(0.6, 0.3, 0);
+                    gateDoor.position.set(0, 0.3, 0);
                     innerGroup.add(gateDoor);
                 }
             }
@@ -679,7 +678,7 @@
             return group;
         }
 
-        const SAVE_KEY = 'mossari_town_save_v11';
+        const SAVE_KEY = 'mossari_town_save_v12';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -691,21 +690,17 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
         }
 
-        // Автоматическая генерация дорог сеткой (разбивка на равные участки)
+        // Автоматическая генерация сетки дорог, разделяющей город на равные кварталы
         function generateDefaultRoads() {
             const roads = [];
             const minCoord = -24;
             const maxCoord = 24;
-            const step = 6.0; // каждые 5 клеток (5 * 1.2 = 6.0) идет дорога
+            const step = 6.0; // каждые 5 ячеек (5 * 1.2 = 6.0) прокладывается дорога
 
-            for (let x = minCoord; x <= maxCoord; x += step) {
-                for (let z = minCoord; z <= maxCoord; z += step) {
-                    // Прокладываем дороги по осям X и Z
-                    if (Math.abs(x) % (step * 2) === 0 || Math.abs(z) % (step * 2) === 0 || x === minCoord || x === maxCoord || z === minCoord || z === maxCoord) {
-                        for (let dx = 0; dx < CELL_SIZE; dx += CELL_SIZE) {
-                            // Проверяем, нет ли уже
-                            roads.push({ x: Math.round(x / CELL_SIZE) * CELL_SIZE, z: Math.round(z / CELL_SIZE) * CELL_SIZE });
-                        }
+            for (let x = minCoord; x <= maxCoord; x += CELL_SIZE) {
+                for (let z = minCoord; z <= maxCoord; z += CELL_SIZE) {
+                    if (Math.abs(x) % step === 0 || Math.abs(z) % step === 0 || x === minCoord || x === maxCoord || z === minCoord || z === maxCoord) {
+                        roads.push({ x: Math.round(x / CELL_SIZE) * CELL_SIZE, z: Math.round(z / CELL_SIZE) * CELL_SIZE });
                     }
                 }
             }
@@ -713,7 +708,7 @@
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v10');
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v11') || localStorage.getItem('mossari_town_save_v10');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -730,7 +725,7 @@
                 } catch(e) {}
             }
 
-            // Если сохранения нет, генерируем стартовую сетку дорог и несколько базовых зданий
+            // Генерация дорожной сетки и стартовых зданий в кварталах
             const defaultRoads = generateDefaultRoads();
             defaultRoads.forEach(pos => {
                 const model = createModel('road');
@@ -739,7 +734,6 @@
                 placedObjects.push({ type: 'road', mesh: model });
             });
 
-            // Пара стартовых зданий в кварталах
             const starterItems = [
                 { type: 'house', x: -7.2, z: -7.2 },
                 { type: 'house', x: 2.4, z: -7.2 },
