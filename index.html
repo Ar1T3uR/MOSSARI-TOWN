@@ -51,7 +51,6 @@
         .tool-btn .icon { font-size: 18px; display: block; margin-bottom: 3px; }
         .instruction { text-align: center; background: rgba(0,0,0,0.6); padding: 6px 14px; border-radius: 12px; font-size: 11px; margin-bottom: 4px; backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05); }
 
-        /* Модальное окно управления землей */
         #propertyModal {
             position: fixed; bottom: -100%; left: 0; width: 100%; background: rgba(25, 25, 35, 0.95);
             backdrop-filter: blur(20px); border-top-left-radius: 24px; border-top-right-radius: 24px;
@@ -108,7 +107,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно управления землей и рынком -->
     <div id="propertyModal" class="interactive">
         <div class="modal-title">
             <span id="modalObjName">Управление объектом</span>
@@ -191,7 +189,6 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Текстура травы
         const canvasTx = document.createElement('canvas');
         canvasTx.width = canvasTx.height = 512;
         const ctxTx = canvasTx.getContext('2d');
@@ -273,7 +270,7 @@
             return group;
         }
 
-        const SAVE_KEY = 'mossari_town_tycoon_v1';
+        const SAVE_KEY = 'mossari_town_tycoon_v2';
         function saveGame() {
             localStorage.setItem(SAVE_KEY, JSON.stringify({
                 balance: playerBalance,
@@ -298,7 +295,6 @@
                     return;
                 } catch(e) {}
             }
-            // Генерация стартового города
             for (let x = -36; x <= 36; x += CELL_SIZE) {
                 for (let z = -36; z <= 36; z += CELL_SIZE) {
                     if (Math.abs(Math.round(x*10)%72) < 1 || Math.abs(Math.round(z*10)%72) < 1) {
@@ -379,8 +375,9 @@
                         });
                         if (idx !== -1) { 
                             scene.remove(placedObjects[idx].mesh); 
+                            const removedType = placedObjects[idx].type;
                             placedObjects.splice(idx, 1); 
-                            playerBalance += Math.floor((buildingConfigs[placedObjects[idx]?.type]?.cost || 100) * 0.5);
+                            playerBalance += Math.floor((buildingConfigs[removedType]?.cost || 100) * 0.5);
                             updateBalanceUI();
                             saveGame(); 
                         }
@@ -465,7 +462,6 @@
             isDragging = false;
         }
 
-        // Автозаработка раз в секунду
         setInterval(() => {
             let totalIncome = 0;
             placedObjects.forEach(obj => {
