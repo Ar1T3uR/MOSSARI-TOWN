@@ -19,6 +19,9 @@
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
+            /* Отключаем стандартные жесты браузера и сворачивание свайпом */
+            overscroll-behavior: none;
+            touch-action: none;
         }
 
         #canvas-container {
@@ -224,7 +227,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Заборы идеально стыкуются торец-в-торец без пересечений!</div>
+            <div class="instruction">Свободное перемещение во все стороны без сворачивания!</div>
             
             <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -281,7 +284,13 @@
     <script>
         // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
-        try { tg.expand(); } catch(e) {}
+        try { 
+            tg.expand(); 
+            // Отключаем вертикальные свайпы для закрытия мини-приложения в Telegram
+            if (typeof tg.disableVerticalSwipes === 'function') {
+                tg.disableVerticalSwipes();
+            }
+        } catch(e) {}
 
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
