@@ -80,10 +80,10 @@
             padding: 12px;
             border-radius: 20px;
             display: flex;
-            gap: 10px;
+            gap: 12px;
             overflow-x: auto;
             border: 1px solid rgba(255,255,255,0.08);
-            max-width: 500px;
+            max-width: 360px;
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
@@ -96,7 +96,7 @@
             border-radius: 14px;
             padding: 10px;
             flex: 1;
-            min-width: 75px;
+            min-width: 80px;
             text-align: center;
             cursor: pointer;
             color: white;
@@ -144,7 +144,7 @@
         </header>
 
         <div style="display: flex; flex-direction: column; width: 100%;">
-            <div class="instruction">Прогресс сохраняется автоматически!</div>
+            <div class="instruction">Стройте уютные дома и живые деревья! Прогресс сохраняется.</div>
             
             <div class="toolbar interactive">
                 <div class="tool-btn active" onclick="setTool('house')">
@@ -152,12 +152,6 @@
                 </div>
                 <div class="tool-btn" onclick="setTool('tree')">
                     <span class="icon">🌲</span>Дерево
-                </div>
-                <div class="tool-btn" onclick="setTool('modern_bench')">
-                    <span class="icon">🛋️</span>Лаунж
-                </div>
-                <div class="tool-btn" onclick="setTool('store')">
-                    <span class="icon">✨</span>Бутик
                 </div>
                 <div class="tool-btn" onclick="setTool('eraser')">
                     <span class="icon">❌</span>Удалить
@@ -210,55 +204,76 @@
 
         const placedObjects = []; // Массив объектов с { type, mesh }
 
+        // Создание детализированных моделей
         function createModel(type) {
             const group = new THREE.Group();
 
             if (type === 'house') {
-                const baseMat = new THREE.MeshStandardMaterial({ color: 0xefefef, roughness: 0.3 });
-                const baseGeo = new THREE.BoxGeometry(1.4, 1.2, 1.4);
+                // Белые стены дома
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 });
+                const baseGeo = new THREE.BoxGeometry(1.4, 1.1, 1.4);
                 const base = new THREE.Mesh(baseGeo, baseMat);
-                base.position.y = 0.6;
+                base.position.y = 0.55;
+                base.castShadow = true;
                 group.add(base);
 
-                const roofMat = new THREE.MeshStandardMaterial({ color: 0x2c2c2c });
+                // Красная крыша
+                const roofMat = new THREE.MeshStandardMaterial({ color: 0xc84b31, roughness: 0.4 });
                 const roofGeo = new THREE.ConeGeometry(1.1, 0.9, 4);
                 const roof = new THREE.Mesh(roofGeo, roofMat);
-                roof.position.y = 1.65;
+                roof.position.y = 1.55;
                 roof.rotation.y = Math.PI / 4;
+                roof.castShadow = true;
                 group.add(roof);
+
+                // Дверь
+                const doorMat = new THREE.MeshStandardMaterial({ color: 0x5a3d28 });
+                const doorGeo = new THREE.BoxGeometry(0.35, 0.55, 0.05);
+                const door = new THREE.Mesh(doorGeo, doorMat);
+                door.position.set(0, 0.28, 0.71);
+                group.add(door);
+
+                // Окна (два боковых/передних для уюта)
+                const windowMat = new THREE.MeshStandardMaterial({ color: 0x33b5e5, roughness: 0.1 });
+                const winGeo = new THREE.BoxGeometry(0.3, 0.3, 0.05);
+                
+                const win1 = new THREE.Mesh(winGeo, windowMat);
+                win1.position.set(-0.38, 0.7, 0.71);
+                group.add(win1);
+
+                const win2 = new THREE.Mesh(winGeo, windowMat);
+                win2.position.set(0.38, 0.7, 0.71);
+                group.add(win2);
             } 
             else if (type === 'tree') {
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x7a5230 });
-                const trunkGeo = new THREE.CylinderGeometry(0.12, 0.18, 0.7);
+                // Коричневый ствол дерева
+                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6e4727 });
+                const trunkGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.8);
                 const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-                trunk.position.y = 0.35;
+                trunk.position.y = 0.4;
+                trunk.castShadow = true;
                 group.add(trunk);
 
-                const leavesMat = new THREE.MeshStandardMaterial({ color: 0x3d6b4f });
-                const leavesGeo = new THREE.DodecahedronGeometry(0.7);
-                const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-                leaves.position.y = 1.1;
-                group.add(leaves);
-            } 
-            else if (type === 'modern_bench') {
-                const benchMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
-                const seatGeo = new THREE.BoxGeometry(1.2, 0.15, 0.5);
-                const seat = new THREE.Mesh(seatGeo, benchMat);
-                seat.position.y = 0.3;
-                group.add(seat);
-            } 
-            else if (type === 'store') {
-                const baseMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.2 });
-                const baseGeo = new THREE.BoxGeometry(1.8, 1.4, 1.8);
-                const base = new THREE.Mesh(baseGeo, baseMat);
-                base.position.y = 0.7;
-                group.add(base);
+                // Живая пушистая крона (несколько сфер для объема)
+                const leavesMat1 = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7 });
+                const leavesMat2 = new THREE.MeshStandardMaterial({ color: 0x3cb371, roughness: 0.7 });
 
-                const roofMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.6 });
-                const roofGeo = new THREE.BoxGeometry(1.9, 0.25, 1.9);
-                const roof = new THREE.Mesh(roofGeo, roofMat);
-                roof.position.y = 1.52;
-                group.add(roof);
+                const sphereGeo1 = new THREE.DodecahedronGeometry(0.65);
+                const leafCluster1 = new THREE.Mesh(sphereGeo1, leavesMat1);
+                leafCluster1.position.y = 1.0;
+                leafCluster1.castShadow = true;
+                group.add(leafCluster1);
+
+                const sphereGeo2 = new THREE.DodecahedronGeometry(0.45);
+                const leafCluster2 = new THREE.Mesh(sphereGeo2, leavesMat2);
+                leafCluster2.position.set(0.25, 1.25, 0.1);
+                leafCluster2.castShadow = true;
+                group.add(leafCluster2);
+
+                const leafCluster3 = new THREE.Mesh(sphereGeo2, leavesMat2);
+                leafCluster3.position.set(-0.2, 1.15, -0.2);
+                leafCluster3.castShadow = true;
+                group.add(leafCluster3);
             }
 
             return group;
@@ -271,11 +286,11 @@
                 x: item.mesh.position.x,
                 z: item.mesh.position.z
             }));
-            localStorage.setItem('mossari_town_save', JSON.stringify(dataToSave));
+            localStorage.setItem('mossari_town_save_v2', JSON.stringify(dataToSave));
         }
 
         function loadGame() {
-            const savedData = localStorage.getItem('mossari_town_save');
+            const savedData = localStorage.getItem('mossari_town_save_v2');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -369,11 +384,11 @@
                             if (closestObj) {
                                 scene.remove(closestObj.mesh);
                                 placedObjects.splice(closestIndex, 1);
-                                saveGame(); // Сохраняем после удаления
+                                saveGame();
                             }
                         }
                     } else {
-                        // Проверка на наложение
+                        // Проверка на наложение объектов
                         let tooClose = false;
                         placedObjects.forEach(item => {
                             if (item.mesh.position.distanceTo(intersect.point) < 1.3) {
@@ -386,7 +401,7 @@
                             model.position.set(intersect.point.x, 0, intersect.point.z);
                             scene.add(model);
                             placedObjects.push({ type: currentTool, mesh: model });
-                            saveGame(); // Сохраняем после постройки
+                            saveGame();
                         }
                     }
                 }
