@@ -223,7 +223,7 @@
         <div></div>
 
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Режим постройки: выбирайте предметы и управляйте ориентацией забора.</div>
+            <div class="instruction" id="instructionText">Поле разбито на кварталы дорогами. Выбирайте инструменты и стройте!</div>
             
             <!-- Панель предметов -->
             <div id="buildPanel" class="build-panel-container interactive">
@@ -269,10 +269,13 @@
                     <div class="tool-btn" id="btn_tree" onclick="setTool('tree')">
                         <span class="icon">🌲</span>Дерево
                     </div>
+                    <div class="tool-btn" id="btn_road" onclick="setTool('road')">
+                        <span class="icon">🛤️</span>Дорога
+                    </div>
                     <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
                         <span class="icon">🚧</span>Ограждение
                     </div>
-                    <!-- Кнопка поворота забора (активна только для заборов/калиток) -->
+                    <!-- Кнопка поворота забора -->
                     <div class="tool-btn" id="btn_rotate_fence" onclick="toggleFenceRotation()" style="display:none; border-color:#c5a059;">
                         <span class="icon" id="rotateIcon">🔄</span><span id="rotateLabel">Гор.</span>
                     </div>
@@ -301,7 +304,7 @@
 
         let currentTool = 'house';
         let interactionMode = 'view';
-        let fenceRotation = 0; // 0 - горизонтально (по X), Math.PI / 2 - вертикально (по Z)
+        let fenceRotation = 0;
 
         function setInteractionMode(mode) {
             interactionMode = mode;
@@ -318,7 +321,7 @@
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = false;
             } else {
                 buildPanel.classList.add('active');
-                instr.innerText = 'Режим постройки: предметы привязываются к сетке тайлов.';
+                instr.innerText = 'Режим постройки: участки разделены дорогами.';
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = true;
             }
         }
@@ -455,14 +458,6 @@
         function getObjectSizeInCells(type, rotY = 0) {
             if (type === 'mall') return { w: 4, h: 4 };
             if (type === 'admin') return { w: 3, h: 3 };
-            if (isFenceOrGate(type)) {
-                // Если забор повернут вертикально (Math.PI / 2), меняем размеры w и h местами
-                if (Math.abs(rotY - Math.PI / 2) < 0.1) {
-                    return { w: 1, h: 1 }; // Занимает 1 клетку по Z
-                } else {
-                    return { w: 1, h: 1 }; // Занимает 1 клетку по X
-                }
-            }
             return { w: 1, h: 1 };
         }
 
@@ -472,7 +467,21 @@
 
             let offsetX = 0, offsetZ = 0;
 
-            if (type === 'house') {
+            if (type === 'road') {
+                offsetX = 0; offsetZ = 0;
+                const roadMat = new THREE.MeshStandardMaterial({ color: 0x44444d, roughness: 0.9 });
+                const roadTile = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.03, 1.2), roadMat);
+                roadTile.position.y = 0.015;
+                roadTile.receiveShadow = true;
+                innerGroup.add(roadTile);
+
+                // Белая полоска посередине дороги
+                const stripeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+                const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.035, 0.6), stripeMat);
+                stripe.position.y = 0.02;
+                innerGroup.add(stripe);
+            }
+            else if (type === 'house') {
                 offsetX = 0.6; offsetZ = 0.6;
                 const baseMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 });
                 const base = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.1, 1.2), baseMat);
@@ -670,7 +679,7 @@
             return group;
         }
 
-        const SAVE_KEY = 'mossari_town_save_v10';
+        const SAVE_KEY = 'mossari_town_save_v11';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -682,8 +691,29 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
         }
 
+        // Автоматическая генерация дорог сеткой (разбивка на равные участки)
+        function generateDefaultRoads() {
+            const roads = [];
+            const minCoord = -24;
+            const maxCoord = 24;
+            const step = 6.0; // каждые 5 клеток (5 * 1.2 = 6.0) идет дорога
+
+            for (let x = minCoord; x <= maxCoord; x += step) {
+                for (let z = minCoord; z <= maxCoord; z += step) {
+                    // Прокладываем дороги по осям X и Z
+                    if (Math.abs(x) % (step * 2) === 0 || Math.abs(z) % (step * 2) === 0 || x === minCoord || x === maxCoord || z === minCoord || z === maxCoord) {
+                        for (let dx = 0; dx < CELL_SIZE; dx += CELL_SIZE) {
+                            // Проверяем, нет ли уже
+                            roads.push({ x: Math.round(x / CELL_SIZE) * CELL_SIZE, z: Math.round(z / CELL_SIZE) * CELL_SIZE });
+                        }
+                    }
+                }
+            }
+            return roads;
+        }
+
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v9') || localStorage.getItem('mossari_town_save_v8');
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v10');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -696,8 +726,33 @@
                         scene.add(model);
                         placedObjects.push({ type: t, mesh: model });
                     });
+                    return;
                 } catch(e) {}
             }
+
+            // Если сохранения нет, генерируем стартовую сетку дорог и несколько базовых зданий
+            const defaultRoads = generateDefaultRoads();
+            defaultRoads.forEach(pos => {
+                const model = createModel('road');
+                model.position.set(pos.x, 0, pos.z);
+                scene.add(model);
+                placedObjects.push({ type: 'road', mesh: model });
+            });
+
+            // Пара стартовых зданий в кварталах
+            const starterItems = [
+                { type: 'house', x: -7.2, z: -7.2 },
+                { type: 'house', x: 2.4, z: -7.2 },
+                { type: 'tree', x: -7.2, z: 2.4 },
+                { type: 'mall', x: 2.4, z: 2.4 }
+            ];
+            starterItems.forEach(item => {
+                const model = createModel(item.type);
+                model.position.set(item.x, 0, item.z);
+                scene.add(model);
+                placedObjects.push({ type: item.type, mesh: model });
+            });
+            saveGame();
         }
 
         function checkCollision(posX, posZ, type, rotY = 0, excludeObj = null) {
