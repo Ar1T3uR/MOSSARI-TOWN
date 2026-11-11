@@ -19,7 +19,6 @@
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
-            /* Отключаем стандартные жесты браузера и сворачивание свайпом */
             overscroll-behavior: none;
             touch-action: none;
         }
@@ -227,7 +226,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Свободное перемещение во все стороны без сворачивания!</div>
+            <div class="instruction">Двигайте карту 1 пальцем, зумируйте щипком 2 пальцев!</div>
             
             <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -286,7 +285,6 @@
         const tg = window.Telegram.WebApp;
         try { 
             tg.expand(); 
-            // Отключаем вертикальные свайпы для закрытия мини-приложения в Telegram
             if (typeof tg.disableVerticalSwipes === 'function') {
                 tg.disableVerticalSwipes();
             }
@@ -653,7 +651,7 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ И ТОЧНОЕ СЕТЕВОЕ СКРЕПЛЕНИЕ ---
+        // --- УПРАВЛЕНИЕ: ПЕРЕМЕЩЕНИЕ И МАСШТАБИРОВАНИЕ ПАЛЬЦАМИ (PINCH-TO-ZOOM) ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -661,8 +659,76 @@
         let hasMoved = false;
         let pointerDownPos = { x: 0, y: 0 };
         let previousMousePosition = { x: 0, y: 0 };
+        
+        let initialPinchDistance = null;
+        let startCameraRadius = cameraRadius;
+        let startCameraHeight = cameraHeight;
 
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                isDragging = false;
+                initialPinchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                startCameraRadius = cameraRadius;
+                startCameraHeight = cameraHeight;
+            } else if (e.touches.length === 1) {
+                if (e.target.closest('.interactive') || e.target.closest('.zoom-controls')) return;
+                isDragging = true;
+                hasMoved = false;
+                pointerDownPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialPinchDistance !== null) {
+                e.preventDefault();
+                const currentDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const scale = initialPinchDistance / currentDist;
+                
+                cameraRadius = Math.max(10, Math.min(65, startCameraRadius * scale));
+                cameraHeight = Math.max(8, Math.min(55, startCameraHeight * scale));
+                updateCameraPosition();
+            } else if (e.touches.length === 1 && isDragging) {
+                const touch = e.touches[0];
+                const dx = touch.clientX - pointerDownPos.x;
+                const dy = touch.clientY - pointerDownPos.y;
+                if (Math.sqrt(dx * dx + dy * dy) > 4) {
+                    hasMoved = true;
+                }
+
+                const deltaX = touch.clientX - previousMousePosition.x;
+                const deltaY = touch.clientY - previousMousePosition.y;
+
+                const panSpeed = 0.04;
+                targetCenter.x -= deltaX * panSpeed;
+                targetCenter.z -= deltaY * panSpeed;
+
+                targetCenter.x = Math.max(-45, Math.min(45, targetCenter.x));
+                targetCenter.z = Math.max(-45, Math.min(45, targetCenter.z));
+
+                updateCameraPosition();
+                previousMousePosition = { x: touch.clientX, y: touch.clientY };
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                initialPinchDistance = null;
+            }
+            if (e.touches.length === 0) {
+                isDragging = false;
+            }
+        });
+
+        // Мышь для десктопа
         window.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'touch') return; // обрабатывается в touchstart
             if (e.target.closest('.interactive') || e.target.closest('.zoom-controls')) return;
             isDragging = true;
             hasMoved = false;
@@ -671,6 +737,7 @@
         });
 
         window.addEventListener('pointermove', (e) => {
+            if (e.pointerType === 'touch') return;
             if (!isDragging) return;
 
             const dx = e.clientX - pointerDownPos.x;
@@ -694,6 +761,7 @@
         });
 
         window.addEventListener('pointerup', (e) => {
+            if (e.pointerType === 'touch') return;
             if (!isDragging) return;
             isDragging = false;
 
