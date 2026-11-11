@@ -29,7 +29,7 @@
             height: 100vh;
             display: block;
             z-index: 1;
-            touch-action: none; /* Отключаем жесты браузера для точного перемещения карты */
+            touch-action: none;
         }
 
         .ui-layer {
@@ -122,7 +122,7 @@
             margin: 0 auto;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch; /* Плавный скролл меню пальцем */
+            -webkit-overflow-scrolling: touch;
             touch-action: pan-x;
         }
 
@@ -136,7 +136,7 @@
             border-radius: 14px;
             padding: 8px 6px;
             flex: 0 0 auto;
-            min-width: 68px;
+            min-width: 65px;
             text-align: center;
             cursor: pointer;
             color: white;
@@ -224,21 +224,33 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Листайте меню вбок. Заборы идеально стыкуются в линии и углы!</div>
+            <div class="instruction">Карта 100х100! Постройте ТЦ, Администрацию, дома и заборы с калитками.</div>
             
-            <!-- Выпадающее подменю для 4 вариантов заборов -->
+            <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
                 <div class="tool-btn" id="btn_fence_wood" onclick="selectFence('fence_wood')">
-                    <span class="icon">🪵</span>Дерево
+                    <span class="icon">🪵</span>Забор
+                </div>
+                <div class="tool-btn" id="btn_gate_wood" onclick="selectFence('gate_wood')">
+                    <span class="icon">🚪</span>Калитка
                 </div>
                 <div class="tool-btn" id="btn_fence_stone" onclick="selectFence('fence_stone')">
                     <span class="icon">🏛️</span>Бордюр
                 </div>
+                <div class="tool-btn" id="btn_gate_stone" onclick="selectFence('gate_stone')">
+                    <span class="icon">🏛️🚪</span>Вх.бордюр
+                </div>
                 <div class="tool-btn" id="btn_fence_hedge" onclick="selectFence('fence_hedge')">
                     <span class="icon">🌿</span>Изгородь
                 </div>
+                <div class="tool-btn" id="btn_gate_hedge" onclick="selectFence('gate_hedge')">
+                    <span class="icon">🌿🚪</span>Вх.изгородь
+                </div>
                 <div class="tool-btn" id="btn_fence_mossari" onclick="selectFence('fence_mossari')">
                     <span class="icon">✨</span>Mossari
+                </div>
+                <div class="tool-btn" id="btn_gate_mossari" onclick="selectFence('gate_mossari')">
+                    <span class="icon">✨🚪</span>Mossari калитка
                 </div>
             </div>
 
@@ -250,11 +262,14 @@
                 <div class="tool-btn" id="btn_mall" onclick="setTool('mall')">
                     <span class="icon">🏬</span>ТЦ
                 </div>
+                <div class="tool-btn" id="btn_admin" onclick="setTool('admin')">
+                    <span class="icon">🏢</span>Админ
+                </div>
                 <div class="tool-btn" id="btn_tree" onclick="setTool('tree')">
                     <span class="icon">🌲</span>Дерево
                 </div>
                 <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
-                    <span class="icon">🚧</span>Забор
+                    <span class="icon">🚧</span>Ограждение
                 </div>
                 <div class="tool-btn" id="btn_eraser" onclick="setTool('eraser')">
                     <span class="icon">❌</span>Удалить
@@ -284,11 +299,15 @@
             setTool(fenceType);
             const icons = {
                 'fence_wood': '🪵',
+                'gate_wood': '🚪',
                 'fence_stone': '🏛️',
+                'gate_stone': '🏛️🚪',
                 'fence_hedge': '🌿',
-                'fence_mossari': '✨'
+                'gate_hedge': '🌿🚪',
+                'fence_mossari': '✨',
+                'gate_mossari': '✨🚪'
             };
-            document.getElementById('btn_fence_main').querySelector('.icon').innerText = icons[fenceType];
+            document.getElementById('btn_fence_main').querySelector('.icon').innerText = icons[fenceType] || '🚧';
             document.getElementById('fenceSubMenu').classList.remove('active');
         }
 
@@ -296,7 +315,7 @@
             currentTool = tool;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             
-            if (tool.startsWith('fence_')) {
+            if (tool.startsWith('fence_') || tool.startsWith('gate_')) {
                 document.getElementById('btn_fence_main').classList.add('active');
                 const btn = document.getElementById('btn_' + tool);
                 if (btn) btn.classList.add('active');
@@ -310,15 +329,15 @@
         // --- 3D МИР (Three.js) ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x12121a);
+        scene.background = new THREE.Color(0x1a2420);
 
         const width = window.innerWidth || 800;
         const height = window.innerHeight || 600;
 
         const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
         
-        let cameraRadius = 26;
-        let cameraHeight = 22;
+        let cameraRadius = 35;
+        let cameraHeight = 28;
         const targetCenter = new THREE.Vector3(0, 0, 0);
 
         function updateCameraPosition() {
@@ -332,14 +351,14 @@
         function zoomIn() {
             cameraRadius -= 3;
             cameraHeight -= 2.5;
-            if (cameraRadius < 8) { cameraRadius = 8; cameraHeight = 7; }
+            if (cameraRadius < 10) { cameraRadius = 10; cameraHeight = 8; }
             updateCameraPosition();
         }
 
         function zoomOut() {
-            cameraRadius += 3;
-            cameraHeight += 2.5;
-            if (cameraRadius > 45) { cameraRadius = 45; cameraHeight = 40; }
+            cameraRadius += 4;
+            cameraHeight += 3.5;
+            if (cameraRadius > 70) { cameraRadius = 70; cameraHeight = 60; }
             updateCameraPosition();
         }
 
@@ -349,23 +368,56 @@
         renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.85);
-        dirLight.position.set(20, 30, 20);
+        const dirLight = new THREE.DirectionalLight(0xfff8ee, 0.9);
+        dirLight.position.set(30, 40, 30);
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Лужайка
-        const groundGeo = new THREE.PlaneGeometry(60, 60);
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x24342b, roughness: 0.8 });
+        // --- ГЕНЕРАЦИЯ СВЕТЛОЙ ТЕКСТУРИРОВАННОЙ ТРАВЫ ---
+        function createGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#3a6148';
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let i = 0; i < 25000; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const shade = Math.random();
+                ctx.fillStyle = shade > 0.5 ? '#487556' : '#2f523b';
+                ctx.fillRect(x, y, 2, 2);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(20, 20);
+            return texture;
+        }
+
+        // Карта 100х100 со светлой текстурированной травой
+        const groundGeo = new THREE.PlaneGeometry(100, 100);
+        const groundMat = new THREE.MeshStandardMaterial({ 
+            map: createGrassTexture(), 
+            roughness: 0.85,
+            metalness: 0.05
+        });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
         const placedObjects = [];
+
+        function isFenceOrGate(type) {
+            return type.startsWith('fence_') || type.startsWith('gate_');
+        }
 
         function createModel(type) {
             const group = new THREE.Group();
@@ -397,28 +449,89 @@
                 win2.position.set(0.38, 0.7, 0.71);
                 group.add(win2);
             } 
+            // --- УВЕЛИЧЕННЫЙ ВДВОЕ ТОРГОВЫЙ ЦЕНТР С ОКНАМИ И ДВЕРЬЮ ---
             else if (type === 'mall') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.6, 2.0), new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 }));
-                body.position.y = 0.8;
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 });
+                const body = new THREE.Mesh(new THREE.BoxGeometry(4.8, 3.2, 4.0), bodyMat);
+                body.position.y = 1.6;
                 body.castShadow = true;
                 group.add(body);
 
-                const glass = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.9, 2.05), new THREE.MeshStandardMaterial({ color: 0x4090b0, roughness: 0.1, transparent: true, opacity: 0.7 }));
-                glass.position.y = 0.65;
-                group.add(glass);
+                const glassMat = new THREE.MeshStandardMaterial({ color: 0x4090b0, roughness: 0.1, transparent: true, opacity: 0.75 });
+                const frontGlass = new THREE.Mesh(new THREE.BoxGeometry(4.0, 1.8, 4.05), glassMat);
+                frontGlass.position.y = 1.1;
+                group.add(frontGlass);
 
-                const roof = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.15, 2.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.6, roughness: 0.2 }));
-                roof.position.y = 1.67;
+                const doorMat = new THREE.MeshStandardMaterial({ color: 0x22222a, roughness: 0.3 });
+                const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 4.1), doorMat);
+                doorFrame.position.set(0, 0.6, 0);
+                group.add(doorFrame);
+
+                const winMat = new THREE.MeshStandardMaterial({ color: 0x33b5e5, roughness: 0.1 });
+                for (let x = -1.5; x <= 1.5; x += 1.0) {
+                    const topWin = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 4.1), winMat);
+                    topWin.position.set(x, 2.3, 0);
+                    group.add(topWin);
+                }
+
+                const roofMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.6, roughness: 0.2 });
+                const roof = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.25, 4.4), roofMat);
+                roof.position.y = 3.32;
                 roof.castShadow = true;
                 group.add(roof);
 
-                const topBox = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 1.0), new THREE.MeshStandardMaterial({ color: 0x181820 }));
-                topBox.position.set(0, 1.95, 0);
+                const topBox = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 2.0), bodyMat);
+                topBox.position.set(0, 3.82, 0);
                 group.add(topBox);
 
-                const sign = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 1.05), new THREE.MeshStandardMaterial({ color: 0xffd700 }));
-                sign.position.set(0, 2.2, 0);
+                const signMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x554000 });
+                const sign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 2.1), signMat);
+                sign.position.set(0, 4.3, 0);
                 group.add(sign);
+            }
+            // --- ЗДАНИЕ АДМИНИСТРАЦИИ С ОКНАМИ И ДВЕРЬМИ ---
+            else if (type === 'admin') {
+                const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3530, roughness: 0.4 });
+                const body = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.6, 3.0), wallMat);
+                body.position.y = 1.3;
+                body.castShadow = true;
+                group.add(body);
+
+                const porchMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2 });
+                const porch = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 3.1), porchMat);
+                porch.position.set(0, 0.7, 0);
+                group.add(porch);
+
+                const doorMat = new THREE.MeshStandardMaterial({ color: 0x6e4727, roughness: 0.5 });
+                const door = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.1, 3.15), doorMat);
+                door.position.set(0, 0.55, 0);
+                group.add(door);
+
+                const winMat = new THREE.MeshStandardMaterial({ color: 0xffe082, roughness: 0.1, emissive: 0x332200 });
+                const win1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 3.05), winMat);
+                win1.position.set(-1.2, 0.9, 0);
+                group.add(win1);
+
+                const win2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 3.05), winMat);
+                win2.position.set(1.2, 0.9, 0);
+                group.add(win2);
+
+                for (let x = -1.2; x <= 1.2; x += 1.2) {
+                    const topWin = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 3.05), winMat);
+                    topWin.position.set(x, 2.0, 0);
+                    group.add(topWin);
+                }
+
+                const roofMat = new THREE.MeshStandardMaterial({ color: 0x1b2420, roughness: 0.3 });
+                const roof = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.3, 3.3), roofMat);
+                roof.position.y = 2.75;
+                roof.castShadow = true;
+                group.add(roof);
+
+                const spireMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7, roughness: 0.2 });
+                const spire = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 4), spireMat);
+                spire.position.y = 3.55;
+                group.add(spire);
             }
             else if (type === 'tree') {
                 const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8), new THREE.MeshStandardMaterial({ color: 0x6e4727 }));
@@ -444,33 +557,53 @@
                 leaf3.castShadow = true;
                 group.add(leaf3);
             }
-            else if (type.startsWith('fence_')) {
-                const mat = type === 'fence_stone' ? new THREE.MeshStandardMaterial({ color: 0x707070 }) :
-                            type === 'fence_hedge' ? new THREE.MeshStandardMaterial({ color: 0x2e6b3e }) :
-                            type === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0x181818 }) :
+            // --- ЗАБОРЫ И КАЛИТКИ ---
+            else if (isFenceOrGate(type)) {
+                const isGate = type.startsWith('gate_');
+                const baseType = type.replace('gate_', 'fence_');
+
+                const mat = baseType === 'fence_stone' ? new THREE.MeshStandardMaterial({ color: 0x707070 }) :
+                            baseType === 'fence_hedge' ? new THREE.MeshStandardMaterial({ color: 0x2e6b3e }) :
+                            baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0x181818 }) :
                             new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
 
-                if (type === 'fence_wood') {
-                    for (let i = -0.5; i <= 0.5; i += 0.35) {
-                        const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), mat);
-                        post.position.set(i, 0.3, 0);
-                        group.add(post);
+                if (!isGate) {
+                    if (baseType === 'fence_wood') {
+                        for (let i = -0.5; i <= 0.5; i += 0.35) {
+                            const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), mat);
+                            post.position.set(i, 0.3, 0);
+                            group.add(post);
+                        }
+                        group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.45, 0) }));
+                        group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.15, 0) }));
+                    } else if (baseType === 'fence_stone' || baseType === 'fence_hedge') {
+                        const geo = baseType === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
+                        const obj = new THREE.Mesh(geo, mat);
+                        obj.position.y = baseType === 'fence_stone' ? 0.2 : 0.35;
+                        obj.castShadow = true;
+                        group.add(obj);
+                    } else if (baseType === 'fence_mossari') {
+                        const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.15), mat);
+                        bar.position.y = 0.25;
+                        group.add(bar);
+                        const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7 }));
+                        top.position.y = 0.52;
+                        group.add(top);
                     }
-                    group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.45, 0) }));
-                    group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.15, 0) }));
-                } else if (type === 'fence_stone' || type === 'fence_hedge') {
-                    const geo = type === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
-                    const obj = new THREE.Mesh(geo, mat);
-                    obj.position.y = type === 'fence_stone' ? 0.2 : 0.35;
-                    obj.castShadow = true;
-                    group.add(obj);
-                } else if (type === 'fence_mossari') {
-                    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.15), mat);
-                    bar.position.y = 0.25;
-                    group.add(bar);
-                    const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7 }));
-                    top.position.y = 0.52;
-                    group.add(top);
+                } else {
+                    const postMat = mat;
+                    const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
+                    post1.position.set(-0.5, 0.325, 0);
+                    group.add(post1);
+
+                    const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
+                    post2.position.set(0.5, 0.325, 0);
+                    group.add(post2);
+
+                    const gateMat = baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.5 }) : postMat;
+                    const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.06), gateMat);
+                    gateDoor.position.set(0, 0.3, 0);
+                    group.add(gateDoor);
                 }
             }
 
@@ -478,7 +611,7 @@
         }
 
         // --- СОХРАНЕНИЕ ---
-        const SAVE_KEY = 'mossari_town_save_v4';
+        const SAVE_KEY = 'mossari_town_save_v6';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -491,7 +624,7 @@
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v3');
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v5');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -508,7 +641,7 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ: ПАНЕЛИ И СТЫКОВКА ---
+        // --- УПРАВЛЕНИЕ И СТЫКОВКА ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -589,8 +722,7 @@
                         let posZ = intersect.point.z;
                         let snapRotation = 0;
 
-                        // --- УМНАЯ АДАПТАЦИЯ ЗАБОРОВ ПО СОСЕДЯМ ---
-                        if (currentTool.startsWith('fence_')) {
+                        if (isFenceOrGate(currentTool)) {
                             const step = 1.2;
                             const gridX = Math.round(posX / step) * step;
                             const gridZ = Math.round(posZ / step) * step;
@@ -598,7 +730,7 @@
                             let hasLeft = false, hasRight = false, hasUp = false, hasDown = false;
 
                             placedObjects.forEach(item => {
-                                if (item.type.startsWith('fence_')) {
+                                if (isFenceOrGate(item.type)) {
                                     const px = item.mesh.position.x;
                                     const pz = item.mesh.position.z;
                                     if (Math.abs(px - (gridX - step)) < 0.2 && Math.abs(pz - gridZ) < 0.2) hasLeft = true;
@@ -622,9 +754,11 @@
                             posZ = gridZ;
                         }
 
+                        // Проверка на наложение объектов
                         let tooClose = false;
                         placedObjects.forEach(item => {
-                            const minDist = currentTool.startsWith('fence_') ? 0.75 : (currentTool === 'mall' ? 2.0 : 1.0);
+                            const minDist = isFenceOrGate(currentTool) ? 0.75 : 
+                                          (currentTool === 'mall' || currentTool === 'admin' ? 3.0 : 1.0);
                             if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
                                 tooClose = true;
                             }
@@ -633,7 +767,7 @@
                         if (!tooClose) {
                             const model = createModel(currentTool);
                             model.position.set(posX, 0, posZ);
-                            if (currentTool.startsWith('fence_')) {
+                            if (isFenceOrGate(currentTool)) {
                                 model.rotation.y = snapRotation;
                             }
                             scene.add(model);
@@ -648,8 +782,8 @@
         window.addEventListener('wheel', (e) => {
             cameraRadius += e.deltaY * 0.03;
             cameraHeight += e.deltaY * 0.025;
-            if (cameraRadius < 8) { cameraRadius = 8; cameraHeight = 7; }
-            if (cameraRadius > 45) { cameraRadius = 45; cameraHeight = 40; }
+            if (cameraRadius < 10) { cameraRadius = 10; cameraHeight = 8; }
+            if (cameraRadius > 65) { cameraRadius = 65; cameraHeight = 55; }
             updateCameraPosition();
         }, { passive: true });
 
