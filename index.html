@@ -224,7 +224,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Заборы и калитки всегда автоматически скрепляются между собой!</div>
+            <div class="instruction">Заборы идеально стыкуются торец-в-торец и образуют сплошные линии!</div>
             
             <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -555,7 +555,7 @@
                 leaf3.castShadow = true;
                 group.add(leaf3);
             }
-            // --- ЗАБОРЫ И КАЛИТКИ ---
+            // --- СТРОГО СТЫКУЕМЫЕ ЗАБОРЫ И КАЛИТКИ (Длина секции = 1.2) ---
             else if (isFenceOrGate(type)) {
                 const isGate = type.startsWith('gate_');
                 const baseType = type.replace('gate_', 'fence_');
@@ -567,17 +567,17 @@
 
                 if (!isGate) {
                     if (baseType === 'fence_wood') {
-                        for (let i = -0.45; i <= 0.45; i += 0.3) {
-                            const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), mat);
+                        for (let i = -0.5; i <= 0.5; i += 0.33) {
+                            const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.65, 0.1), mat);
                             post.position.set(i, 0.325, 0);
                             post.castShadow = true;
                             group.add(post);
                         }
-                        const beam1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.06), mat);
+                        const beam1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
                         beam1.position.set(0, 0.48, 0);
                         group.add(beam1);
 
-                        const beam2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.06), mat);
+                        const beam2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
                         beam2.position.set(0, 0.18, 0);
                         group.add(beam2);
                     } else if (baseType === 'fence_stone' || baseType === 'fence_hedge') {
@@ -615,7 +615,7 @@
         }
 
         // --- СОХРАНЕНИЕ ---
-        const SAVE_KEY = 'mossari_town_save_v8';
+        const SAVE_KEY = 'mossari_town_save_v9';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -628,7 +628,7 @@
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v7') || localStorage.getItem('mossari_town_save_v6');
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v8') || localStorage.getItem('mossari_town_save_v7');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -645,7 +645,7 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ И УМНОЕ СКРЕПЛЕНИЕ ОГРАЖДЕНИЙ ---
+        // --- УПРАВЛЕНИЕ И ИДЕАЛЬНАЯ СТЫКОВКА ТОРЕЦ-В-ТОРЕЦ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -729,7 +729,7 @@
                         let posZ = intersect.point.z;
                         let snapRotation = 0;
 
-                        // --- ВСЕГДА АВТОМАТИЧЕСКОЕ СКРЕПЛЕНИЕ И СОЕДИНЕНИЕ ЗАБОРОВ ---
+                        // --- ЕДИНАЯ СЕТКА И АВТО-ОРИЕНТАЦИЯ СТЫКОВ ---
                         if (isFenceOrGate(currentTool)) {
                             const step = 1.2;
                             const gridX = Math.round(posX / step) * step;
@@ -741,16 +741,13 @@
                                 if (isFenceOrGate(item.type)) {
                                     const px = item.mesh.position.x;
                                     const pz = item.mesh.position.z;
-                                    if (Math.abs(px - (gridX - step)) < 0.25 && Math.abs(pz - gridZ) < 0.25) hasLeft = true;
-                                    if (Math.abs(px - (gridX + step)) < 0.25 && Math.abs(pz - gridZ) < 0.25) hasRight = true;
-                                    if (Math.abs(px - gridX) < 0.25 && Math.abs(pz - (gridZ - step)) < 0.25) hasUp = true;
-                                    if (Math.abs(px - gridX) < 0.25 && Math.abs(pz - (gridZ + step)) < 0.25) hasDown = true;
+                                    if (Math.abs(px - (gridX - step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasLeft = true;
+                                    if (Math.abs(px - (gridX + step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasRight = true;
+                                    if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ - step)) < 0.15) hasUp = true;
+                                    if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ + step)) < 0.15) hasDown = true;
                                 }
                             });
 
-                            // Если рядом есть соседи сверху или снизу — поворачиваем в вертикальный ряд
-                            // Если слева или справа — в горизонтальный ряд
-                            // При пересечении или углах скрепляем так, чтобы они касались друг друга
                             if ((hasUp || hasDown) && !(hasLeft || hasRight)) {
                                 snapRotation = Math.PI / 2;
                             } else if ((hasLeft || hasRight) && !(hasUp || hasDown)) {
@@ -760,13 +757,22 @@
                             } else if (hasLeft || hasRight) {
                                 snapRotation = 0;
                             } else {
-                                // Если соседей нет совсем, проверяем последний размещенный забор для продолжения линии
-                                const lastFence = placedObjects.slice().reverse().find(item => isFenceOrGate(item.type));
-                                if (lastFence) {
-                                    const dist = lastFence.mesh.position.distanceTo(new THREE.Vector3(gridX, 0, gridZ));
-                                    if (dist < 2.0) {
-                                        snapRotation = lastFence.mesh.rotation.y;
+                                let nearestFence = null;
+                                let minD = 2.0;
+                                placedObjects.forEach(item => {
+                                    if (isFenceOrGate(item.type)) {
+                                        const d = item.mesh.position.distanceTo(new THREE.Vector3(gridX, 0, gridZ));
+                                        if (d < minD) {
+                                            minD = d;
+                                            nearestFence = item;
+                                        }
                                     }
+                                });
+
+                                if (nearestFence) {
+                                    snapRotation = nearestFence.mesh.rotation.y;
+                                } else {
+                                    snapRotation = 0;
                                 }
                             }
 
@@ -777,7 +783,7 @@
                         // Проверка на наложение объектов
                         let tooClose = false;
                         placedObjects.forEach(item => {
-                            const minDist = isFenceOrGate(currentTool) ? 0.75 : 
+                            const minDist = isFenceOrGate(currentTool) ? 0.65 : 
                                           (currentTool === 'mall' || currentTool === 'admin' ? 3.0 : 1.0);
                             if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
                                 tooClose = true;
@@ -809,12 +815,6 @@
 
         loadGame();
 
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-        animate();
-
         window.addEventListener('resize', () => {
             const w = window.innerWidth;
             const h = window.innerHeight;
@@ -822,6 +822,12 @@
             camera.updateProjectionMatrix();
             renderer.setSize(w, h);
         });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
     </script>
 </body>
 </html>
