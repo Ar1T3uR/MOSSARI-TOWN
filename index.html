@@ -314,7 +314,7 @@
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = false;
             } else {
                 buildPanel.classList.add('active');
-                instr.innerText = 'Режим постройки: тапайте по полю для установки или удаления предметов.';
+                instr.innerText = 'Режим постройки: тапайте для установки, либо зажмите здание, чтобы перетащить его.';
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = true;
             }
         }
@@ -431,7 +431,7 @@
         // --- СЕТКА ДЛЯ РЕЖИМА СТРОЙКИ ---
         const gridHelper = new THREE.GridHelper(96, 80, 0xc5a059, 0x457555);
         gridHelper.position.y = 0.02;
-        gridHelper.visible = false; // скрыта по умолчанию в режиме обзора
+        gridHelper.visible = false;
         scene.add(gridHelper);
 
         const placedObjects = [];
@@ -440,123 +440,131 @@
             return type.startsWith('fence_') || type.startsWith('gate_');
         }
 
+        // Создание модели со смещением геометрии так, чтобы её левый нижний край был в локальном (0,0)
         function createModel(type) {
             const group = new THREE.Group();
+            const innerGroup = new THREE.Group();
+
+            let offsetX = 0, offsetZ = 0;
 
             if (type === 'house') {
+                offsetX = 0.7; offsetZ = 0.7;
                 const baseMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 });
                 const base = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 1.4), baseMat);
                 base.position.y = 0.55;
                 base.castShadow = true;
-                group.add(base);
+                innerGroup.add(base);
 
                 const roofMat = new THREE.MeshStandardMaterial({ color: 0xc84b31, roughness: 0.4 });
                 const roof = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.9, 4), roofMat);
                 roof.position.y = 1.55;
                 roof.rotation.y = Math.PI / 4;
                 roof.castShadow = true;
-                group.add(roof);
+                innerGroup.add(roof);
 
                 const door = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.55, 0.05), new THREE.MeshStandardMaterial({ color: 0x5a3d28 }));
                 door.position.set(0, 0.28, 0.71);
-                group.add(door);
+                innerGroup.add(door);
 
                 const winMat = new THREE.MeshStandardMaterial({ color: 0x33b5e5, roughness: 0.1 });
                 const win1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.05), winMat);
                 win1.position.set(-0.38, 0.7, 0.71);
-                group.add(win1);
+                innerGroup.add(win1);
 
                 const win2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.05), winMat);
                 win2.position.set(0.38, 0.7, 0.71);
-                group.add(win2);
+                innerGroup.add(win2);
             } 
             else if (type === 'mall') {
+                offsetX = 2.4; offsetZ = 2.0;
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(4.8, 3.2, 4.0), bodyMat);
                 body.position.y = 1.6;
                 body.castShadow = true;
-                group.add(body);
+                innerGroup.add(body);
 
                 const glassMat = new THREE.MeshStandardMaterial({ color: 0x4090b0, roughness: 0.1, transparent: true, opacity: 0.75 });
                 const frontGlass = new THREE.Mesh(new THREE.BoxGeometry(4.0, 1.8, 4.05), glassMat);
                 frontGlass.position.y = 1.1;
-                group.add(frontGlass);
+                innerGroup.add(frontGlass);
 
                 const doorMat = new THREE.MeshStandardMaterial({ color: 0x22222a, roughness: 0.3 });
                 const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 4.1), doorMat);
                 doorFrame.position.set(0, 0.6, 0);
-                group.add(doorFrame);
+                innerGroup.add(doorFrame);
 
                 const winMat = new THREE.MeshStandardMaterial({ color: 0x33b5e5, roughness: 0.1 });
                 for (let x = -1.5; x <= 1.5; x += 1.0) {
                     const topWin = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 4.1), winMat);
                     topWin.position.set(x, 2.3, 0);
-                    group.add(topWin);
+                    innerGroup.add(topWin);
                 }
 
                 const roofMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.6, roughness: 0.2 });
                 const roof = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.25, 4.4), roofMat);
                 roof.position.y = 3.32;
                 roof.castShadow = true;
-                group.add(roof);
+                innerGroup.add(roof);
 
                 const topBox = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 2.0), bodyMat);
                 topBox.position.set(0, 3.82, 0);
-                group.add(topBox);
+                innerGroup.add(topBox);
 
                 const signMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x554000 });
                 const sign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 2.1), signMat);
                 sign.position.set(0, 4.3, 0);
-                group.add(sign);
+                innerGroup.add(sign);
             }
             else if (type === 'admin') {
+                offsetX = 1.8; offsetZ = 1.5;
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3530, roughness: 0.4 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.6, 3.0), wallMat);
                 body.position.y = 1.3;
                 body.castShadow = true;
-                group.add(body);
+                innerGroup.add(body);
 
                 const porchMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2 });
                 const porch = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 3.1), porchMat);
                 porch.position.set(0, 0.7, 0);
-                group.add(porch);
+                innerGroup.add(porch);
 
                 const doorMat = new THREE.MeshStandardMaterial({ color: 0x6e4727, roughness: 0.5 });
                 const door = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.1, 3.15), doorMat);
                 door.position.set(0, 0.55, 0);
-                group.add(door);
+                innerGroup.add(door);
 
                 const winMat = new THREE.MeshStandardMaterial({ color: 0xffe082, roughness: 0.1, emissive: 0x332200 });
                 const win1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 3.05), winMat);
                 win1.position.set(-1.2, 0.9, 0);
-                group.add(win1);
+                innerGroup.add(win1);
 
                 const win2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 3.05), winMat);
                 win2.position.set(1.2, 0.9, 0);
-                group.add(win2);
+                innerGroup.add(win2);
 
                 for (let x = -1.2; x <= 1.2; x += 1.2) {
                     const topWin = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 3.05), winMat);
                     topWin.position.set(x, 2.0, 0);
-                    group.add(topWin);
+                    innerGroup.add(topWin);
                 }
 
                 const roofMat = new THREE.MeshStandardMaterial({ color: 0x1b2420, roughness: 0.3 });
                 const roof = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.3, 3.3), roofMat);
                 roof.position.y = 2.75;
                 roof.castShadow = true;
-                group.add(roof);
+                innerGroup.add(roof);
 
                 const spireMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7, roughness: 0.2 });
                 const spire = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 4), spireMat);
                 spire.position.y = 3.55;
-                group.add(spire);
+                innerGroup.add(spire);
             }
             else if (type === 'tree') {
+                offsetX = 0.5; offsetZ = 0.5;
                 const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8), new THREE.MeshStandardMaterial({ color: 0x6e4727 }));
                 trunk.position.y = 0.4;
                 trunk.castShadow = true;
-                group.add(trunk);
+                innerGroup.add(trunk);
 
                 const leavesMat1 = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7 });
                 const leavesMat2 = new THREE.MeshStandardMaterial({ color: 0x3cb371, roughness: 0.7 });
@@ -564,20 +572,20 @@
                 const leaf1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65), leavesMat1);
                 leaf1.position.y = 1.0;
                 leaf1.castShadow = true;
-                group.add(leaf1);
+                innerGroup.add(leaf1);
 
                 const leaf2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45), leavesMat2);
                 leaf2.position.set(0.25, 1.25, 0.1);
                 leaf2.castShadow = true;
-                group.add(leaf2);
+                innerGroup.add(leaf2);
 
                 const leaf3 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45), leavesMat2);
                 leaf3.position.set(-0.2, 1.15, -0.2);
                 leaf3.castShadow = true;
-                group.add(leaf3);
+                innerGroup.add(leaf3);
             }
-            // --- СТРОГО СТЫКУЕМЫЕ ЗАБОРЫ И КАЛИТКИ С СЕКЦИЯМИ ОТ 0 ДО 1.2 ---
             else if (isFenceOrGate(type)) {
+                offsetX = 0; offsetZ = 0;
                 const isGate = type.startsWith('gate_');
                 const baseType = type.replace('gate_', 'fence_');
 
@@ -592,46 +600,48 @@
                             const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.65, 0.1), mat);
                             post.position.set(i, 0.325, 0);
                             post.castShadow = true;
-                            group.add(post);
+                            innerGroup.add(post);
                         }
                         const beam1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
                         beam1.position.set(0.6, 0.48, 0);
-                        group.add(beam1);
+                        innerGroup.add(beam1);
 
                         const beam2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
                         beam2.position.set(0.6, 0.18, 0);
-                        group.add(beam2);
+                        innerGroup.add(beam2);
                     } else if (baseType === 'fence_stone' || baseType === 'fence_hedge') {
                         const geo = baseType === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
                         const obj = new THREE.Mesh(geo, mat);
                         obj.position.set(0.6, baseType === 'fence_stone' ? 0.2 : 0.35, 0);
                         obj.castShadow = true;
-                        group.add(obj);
+                        innerGroup.add(obj);
                     } else if (baseType === 'fence_mossari') {
                         const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.15), mat);
                         bar.position.set(0.6, 0.25, 0);
-                        group.add(bar);
+                        innerGroup.add(bar);
                         const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7 }));
                         top.position.set(0.6, 0.52, 0);
-                        group.add(top);
+                        innerGroup.add(top);
                     }
                 } else {
                     const postMat = mat;
                     const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
                     post1.position.set(0.06, 0.325, 0);
-                    group.add(post1);
+                    innerGroup.add(post1);
 
                     const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
                     post2.position.set(1.14, 0.325, 0);
-                    group.add(post2);
+                    innerGroup.add(post2);
 
                     const gateMat = baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.5 }) : postMat;
                     const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.06), gateMat);
                     gateDoor.position.set(0.6, 0.3, 0);
-                    group.add(gateDoor);
+                    innerGroup.add(gateDoor);
                 }
             }
 
+            innerGroup.position.set(-offsetX, 0, -offsetZ);
+            group.add(innerGroup);
             return group;
         }
 
@@ -666,7 +676,7 @@
             }
         }
 
-        // --- ЛОГИКА УПРАВЛЕНИЯ, СТАВКИ И УДАЛЕНИЯ ---
+        // --- ЛОГИКА УПРАВЛЕНИЯ, СТАВКИ, УДАЛЕНИЯ И ПЕРЕТАСКИВАНИЯ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -679,8 +689,102 @@
         let startCameraRadius = cameraRadius;
         let startCameraHeight = cameraHeight;
 
-        function handleInteractionAction(clientX, clientY) {
+        let draggedObject = null; // Объект, который пользователь зажал и перетаскивает
+
+        function handleInteractionStart(clientX, clientY) {
             if (interactionMode !== 'build') return;
+
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Если выбран ластик — удаляем при тапе
+            if (currentTool === 'eraser') {
+                const intersects = raycaster.intersectObject(ground);
+                if (intersects.length > 0 && placedObjects.length > 0) {
+                    let closestObj = null;
+                    let minDist = 1.2;
+                    let closestIndex = -1;
+
+                    placedObjects.forEach((item, idx) => {
+                        const dist = item.mesh.position.distanceTo(intersects[0].point);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestObj = item;
+                            closestIndex = idx;
+                        }
+                    });
+
+                    if (closestObj) {
+                        scene.remove(closestObj.mesh);
+                        placedObjects.splice(closestIndex, 1);
+                        saveGame();
+                    }
+                }
+                return;
+            }
+
+            // Проверяем, не нажал ли пользователь на уже существующий объект, чтобы перетащить его
+            const objectMeshes = placedObjects.map(item => item.mesh);
+            const intersectsObjects = raycaster.intersectObjects(objectMeshes, true);
+
+            if (intersectsObjects.length > 0) {
+                let hitMesh = intersectsObjects[0].object;
+                while (hitMesh.parent && hitMesh.parent !== scene) {
+                    if (placedObjects.some(item => item.mesh === hitMesh.parent)) {
+                        hitMesh = hitMesh.parent;
+                        break;
+                    }
+                    hitMesh = hitMesh.parent;
+                }
+
+                const foundIndex = placedObjects.findIndex(item => item.mesh === hitMesh);
+                if (foundIndex !== -1) {
+                    draggedObject = placedObjects[foundIndex];
+                    placedObjects.splice(foundIndex, 1); // временно убираем из списка для перетаскивания
+                    return;
+                }
+            }
+
+            // Если не на объект, ставим новый предмет в точке клика
+            const intersectsGround = raycaster.intersectObject(ground);
+            if (intersectsGround.length > 0) {
+                const intersect = intersectsGround[0];
+                let posX = intersect.point.x;
+                let posZ = intersect.point.z;
+                let snapRotation = 0;
+
+                if (isFenceOrGate(currentTool)) {
+                    const step = 1.2;
+                    posX = Math.round(posX / step) * step;
+                    posZ = Math.round(posZ / step) * step;
+                }
+
+                let tooClose = false;
+                placedObjects.forEach(item => {
+                    const minDist = isFenceOrGate(currentTool) ? 0.4 : 1.0;
+                    if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
+                        tooClose = true;
+                    }
+                });
+
+                if (!tooClose) {
+                    const model = createModel(currentTool);
+                    model.position.set(posX, 0, posZ);
+                    scene.add(model);
+                    placedObjects.push({ type: currentTool, mesh: model });
+                    saveGame();
+                    
+                    // Сразу делаем этот новый объект доступным для перетаскивания
+                    draggedObject = placedObjects[placedObjects.length - 1];
+                    placedObjects.pop();
+                }
+            }
+        }
+
+        function handleInteractionMove(clientX, clientY) {
+            if (!draggedObject) return;
 
             mouse.x = (clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(clientY / window.innerHeight) * 2 + 1;
@@ -689,105 +793,42 @@
             const intersects = raycaster.intersectObject(ground);
 
             if (intersects.length > 0) {
-                const intersect = intersects[0];
+                let posX = intersects[0].point.x;
+                let posZ = intersects[0].point.z;
 
-                if (currentTool === 'eraser') {
-                    if (placedObjects.length > 0) {
-                        let closestObj = null;
-                        let minDist = 1.2;
-                        let closestIndex = -1;
-
-                        placedObjects.forEach((item, idx) => {
-                            const dist = item.mesh.position.distanceTo(intersect.point);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                closestObj = item;
-                                closestIndex = idx;
-                            }
-                        });
-
-                        if (closestObj) {
-                            scene.remove(closestObj.mesh);
-                            placedObjects.splice(closestIndex, 1);
-                            saveGame();
-                        }
-                    }
-                } else {
-                    let posX = intersect.point.x;
-                    let posZ = intersect.point.z;
-                    let snapRotation = 0;
-
-                    if (isFenceOrGate(currentTool)) {
-                        const step = 1.2;
-                        const gridX = Math.round(posX / step) * step;
-                        const gridZ = Math.round(posZ / step) * step;
-
-                        let hasLeft = false, hasRight = false, hasUp = false, hasDown = false;
-
-                        placedObjects.forEach(item => {
-                            if (isFenceOrGate(item.type)) {
-                                const px = item.mesh.position.x;
-                                const pz = item.mesh.position.z;
-                                if (Math.abs(px - (gridX - step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasLeft = true;
-                                if (Math.abs(px - (gridX + step)) < 0.15 && Math.abs(pz - gridZ) < 0.15) hasRight = true;
-                                if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ - step)) < 0.15) hasUp = true;
-                                if (Math.abs(px - gridX) < 0.15 && Math.abs(pz - (gridZ + step)) < 0.15) hasDown = true;
-                            }
-                        });
-
-                        if ((hasUp || hasDown) && !(hasLeft || hasRight)) {
-                            snapRotation = Math.PI / 2;
-                        } else if ((hasLeft || hasRight) && !(hasUp || hasDown)) {
-                            snapRotation = 0;
-                        } else if (hasUp || hasDown) {
-                            snapRotation = Math.PI / 2;
-                        } else if (hasLeft || hasRight) {
-                            snapRotation = 0;
-                        } else {
-                            let nearestFence = null;
-                            let minD = 2.0;
-                            placedObjects.forEach(item => {
-                                if (isFenceOrGate(item.type)) {
-                                    const d = item.mesh.position.distanceTo(new THREE.Vector3(gridX, 0, gridZ));
-                                    if (d < minD) {
-                                        minD = d;
-                                        nearestFence = item;
-                                    }
-                                }
-                            });
-
-                            if (nearestFence) {
-                                snapRotation = nearestFence.mesh.rotation.y;
-                            } else {
-                                snapRotation = 0;
-                            }
-                        }
-
-                        posX = gridX;
-                        posZ = gridZ;
-                    }
-
-                    let tooClose = false;
-                    placedObjects.forEach(item => {
-                        const minDist = isFenceOrGate(currentTool) ? 0.6 : 
-                                      (currentTool === 'mall' || currentTool === 'admin' ? 3.0 : 1.0);
-                        if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
-                            tooClose = true;
-                        }
-                    });
-
-                    if (!tooClose) {
-                        const model = createModel(currentTool);
-                        model.position.set(posX, 0, posZ);
-                        if (isFenceOrGate(currentTool)) {
-                            model.rotation.y = snapRotation;
-                        }
-                        scene.add(model);
-                        placedObjects.push({ type: currentTool, mesh: model });
-                        saveGame();
-                    }
+                if (isFenceOrGate(draggedObject.type)) {
+                    const step = 1.2;
+                    posX = Math.round(posX / step) * step;
+                    posZ = Math.round(posZ / step) * step;
                 }
+
+                draggedObject.mesh.position.set(posX, 0, posZ);
             }
+        }
+
+        function handleInteractionEnd() {
+            if (!draggedObject) return;
+
+            // Возвращаем объект в массив и сохраняем
+            let tooClose = false;
+            let posX = draggedObject.mesh.position.x;
+            let posZ = draggedObject.mesh.position.z;
+
+            placedObjects.forEach(item => {
+                const minDist = isFenceOrGate(draggedObject.type) ? 0.4 : 1.0;
+                if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
+                    tooClose = true;
+                }
+            });
+
+            if (tooClose) {
+                // Если сбросили на другой предмет — удаляем перетаскиваемый
+                scene.remove(draggedObject.mesh);
+            } else {
+                placedObjects.push(draggedObject);
+                saveGame();
+            }
+            draggedObject = null;
         }
 
         // Обработка касаний (Touch)
@@ -802,6 +843,10 @@
                 startCameraRadius = cameraRadius;
                 startCameraHeight = cameraHeight;
             } else if (e.touches.length === 1) {
+                if (interactionMode === 'build') {
+                    handleInteractionStart(e.touches[0].clientX, e.touches[0].clientY);
+                    if (draggedObject) return; // если схватили объект, не панорамируем карту
+                }
                 isDragging = true;
                 hasMoved = false;
                 pointerDownPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -821,26 +866,33 @@
                 cameraRadius = Math.max(10, Math.min(65, startCameraRadius * scale));
                 cameraHeight = Math.max(8, Math.min(55, startCameraHeight * scale));
                 updateCameraPosition();
-            } else if (e.touches.length === 1 && isDragging) {
+            } else if (e.touches.length === 1) {
                 const touch = e.touches[0];
-                const dx = touch.clientX - pointerDownPos.x;
-                const dy = touch.clientY - pointerDownPos.y;
-                if (Math.sqrt(dx * dx + dy * dy) > 5) {
-                    hasMoved = true;
+                if (draggedObject) {
+                    e.preventDefault();
+                    handleInteractionMove(touch.clientX, touch.clientY);
+                    return;
                 }
+                if (isDragging) {
+                    const dx = touch.clientX - pointerDownPos.x;
+                    const dy = touch.clientY - pointerDownPos.y;
+                    if (Math.sqrt(dx * dx + dy * dy) > 5) {
+                        hasMoved = true;
+                    }
 
-                const deltaX = touch.clientX - previousMousePosition.x;
-                const deltaY = touch.clientY - previousMousePosition.y;
+                    const deltaX = touch.clientX - previousMousePosition.x;
+                    const deltaY = touch.clientY - previousMousePosition.y;
 
-                const panSpeed = 0.04;
-                targetCenter.x -= deltaX * panSpeed;
-                targetCenter.z -= deltaY * panSpeed;
+                    const panSpeed = 0.04;
+                    targetCenter.x -= deltaX * panSpeed;
+                    targetCenter.z -= deltaY * panSpeed;
 
-                targetCenter.x = Math.max(-45, Math.min(45, targetCenter.x));
-                targetCenter.z = Math.max(-45, Math.min(45, targetCenter.z));
+                    targetCenter.x = Math.max(-45, Math.min(45, targetCenter.x));
+                    targetCenter.z = Math.max(-45, Math.min(45, targetCenter.z));
 
-                updateCameraPosition();
-                previousMousePosition = { x: touch.clientX, y: touch.clientY };
+                    updateCameraPosition();
+                    previousMousePosition = { x: touch.clientX, y: touch.clientY };
+                }
             }
         }, { passive: false });
 
@@ -848,13 +900,8 @@
             if (e.touches.length < 2) {
                 initialPinchDistance = null;
             }
-            if (isDragging && !hasMoved) {
-                if (!e.target.closest('.interactive')) {
-                    const lastTouch = e.changedTouches[0];
-                    if (lastTouch) {
-                        handleInteractionAction(lastTouch.clientX, lastTouch.clientY);
-                    }
-                }
+            if (draggedObject) {
+                handleInteractionEnd();
             }
             if (e.touches.length === 0) {
                 isDragging = false;
@@ -865,6 +912,12 @@
         window.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'touch') return;
             if (e.target.closest('.interactive')) return;
+
+            if (interactionMode === 'build') {
+                handleInteractionStart(e.clientX, e.clientY);
+                if (draggedObject) return;
+            }
+
             isDragging = true;
             hasMoved = false;
             pointerDownPos = { x: e.clientX, y: e.clientY };
@@ -873,6 +926,10 @@
 
         window.addEventListener('pointermove', (e) => {
             if (e.pointerType === 'touch') return;
+            if (draggedObject) {
+                handleInteractionMove(e.clientX, e.clientY);
+                return;
+            }
             if (!isDragging) return;
 
             const dx = e.clientX - pointerDownPos.x;
@@ -897,15 +954,12 @@
 
         window.addEventListener('pointerup', (e) => {
             if (e.pointerType === 'touch') return;
+            if (draggedObject) {
+                handleInteractionEnd();
+                return;
+            }
             if (!isDragging) return;
             isDragging = false;
-
-            if (!hasMoved) {
-                if (e.target.closest('.interactive')) {
-                    return;
-                }
-                handleInteractionAction(e.clientX, e.clientY);
-            }
         });
 
         window.addEventListener('wheel', (e) => {
