@@ -224,7 +224,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Карта 100х100! Постройте ТЦ, Администрацию, дома и заборы с калитками.</div>
+            <div class="instruction">Свободное перемещение во все стороны. Заборы и калитки стыкуются идеально!</div>
             
             <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -397,7 +397,7 @@
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(20, 20);
+            texture.repeat.set(25, 25);
             return texture;
         }
 
@@ -449,7 +449,6 @@
                 win2.position.set(0.38, 0.7, 0.71);
                 group.add(win2);
             } 
-            // --- УВЕЛИЧЕННЫЙ ВДВОЕ ТОРГОВЫЙ ЦЕНТР С ОКНАМИ И ДВЕРЬЮ ---
             else if (type === 'mall') {
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(4.8, 3.2, 4.0), bodyMat);
@@ -489,7 +488,6 @@
                 sign.position.set(0, 4.3, 0);
                 group.add(sign);
             }
-            // --- ЗДАНИЕ АДМИНИСТРАЦИИ С ОКНАМИ И ДВЕРЬМИ ---
             else if (type === 'admin') {
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3530, roughness: 0.4 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.6, 3.0), wallMat);
@@ -565,17 +563,23 @@
                 const mat = baseType === 'fence_stone' ? new THREE.MeshStandardMaterial({ color: 0x707070 }) :
                             baseType === 'fence_hedge' ? new THREE.MeshStandardMaterial({ color: 0x2e6b3e }) :
                             baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0x181818 }) :
-                            new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
+                            new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.7 });
 
                 if (!isGate) {
                     if (baseType === 'fence_wood') {
-                        for (let i = -0.5; i <= 0.5; i += 0.35) {
-                            const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), mat);
-                            post.position.set(i, 0.3, 0);
+                        for (let i = -0.45; i <= 0.45; i += 0.3) {
+                            const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), mat);
+                            post.position.set(i, 0.325, 0);
+                            post.castShadow = true;
                             group.add(post);
                         }
-                        group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.45, 0) }));
-                        group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.15, 0) }));
+                        const beam1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.06), mat);
+                        beam1.position.set(0, 0.48, 0);
+                        group.add(beam1);
+
+                        const beam2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.06), mat);
+                        beam2.position.set(0, 0.18, 0);
+                        group.add(beam2);
                     } else if (baseType === 'fence_stone' || baseType === 'fence_hedge') {
                         const geo = baseType === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
                         const obj = new THREE.Mesh(geo, mat);
@@ -611,7 +615,7 @@
         }
 
         // --- СОХРАНЕНИЕ ---
-        const SAVE_KEY = 'mossari_town_save_v6';
+        const SAVE_KEY = 'mossari_town_save_v7';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -624,7 +628,7 @@
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v5');
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v6') || localStorage.getItem('mossari_town_save_v5');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -641,7 +645,7 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ И СТЫКОВКА ---
+        // --- УПРАВЛЕНИЕ: СВОБОДНОЕ ПАНОРАМИРОВАНИЕ ВО ВСЕ СТОРОНЫ И СТЫКОВКА ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -670,9 +674,14 @@
             const deltaX = e.clientX - previousMousePosition.x;
             const deltaY = e.clientY - previousMousePosition.y;
 
-            const panSpeed = 0.035;
+            // Свободное панорамирование во все стороны без ограничений с мягким ходом
+            const panSpeed = 0.04;
             targetCenter.x -= deltaX * panSpeed;
             targetCenter.z -= deltaY * panSpeed;
+
+            // Ограничение центра карты в пределах 45 единиц, чтобы не улететь в пустоту
+            targetCenter.x = Math.max(-45, Math.min(45, targetCenter.x));
+            targetCenter.z = Math.max(-45, Math.min(45, targetCenter.z));
 
             updateCameraPosition();
             previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -722,6 +731,7 @@
                         let posZ = intersect.point.z;
                         let snapRotation = 0;
 
+                        // --- УМНАЯ СТЫКОВКА ВСЕХ ОГРАЖДЕНИЙ (ВЕРТИКАЛЬНЫХ И ГОРИЗОНТАЛЬНЫХ) ---
                         if (isFenceOrGate(currentTool)) {
                             const step = 1.2;
                             const gridX = Math.round(posX / step) * step;
@@ -740,14 +750,14 @@
                                 }
                             });
 
-                            if ((hasLeft || hasRight) && !(hasUp || hasDown)) {
-                                snapRotation = 0;
-                            } else if ((hasUp || hasDown) && !(hasLeft || hasRight)) {
+                            if ((hasUp || hasDown) && !(hasLeft || hasRight)) {
                                 snapRotation = Math.PI / 2;
-                            } else if (hasLeft || hasRight) {
+                            } else if ((hasLeft || hasRight) && !(hasUp || hasDown)) {
                                 snapRotation = 0;
                             } else if (hasUp || hasDown) {
                                 snapRotation = Math.PI / 2;
+                            } else {
+                                snapRotation = 0;
                             }
 
                             posX = gridX;
