@@ -224,7 +224,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Заборы идеально стыкуются торец-в-торец и образуют сплошные линии!</div>
+            <div class="instruction">Заборы идеально стыкуются торец-в-торец без пересечений!</div>
             
             <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -401,7 +401,6 @@
             return texture;
         }
 
-        // Карта 100х100 со светлой текстурированной травой
         const groundGeo = new THREE.PlaneGeometry(100, 100);
         const groundMat = new THREE.MeshStandardMaterial({ 
             map: createGrassTexture(), 
@@ -555,7 +554,7 @@
                 leaf3.castShadow = true;
                 group.add(leaf3);
             }
-            // --- СТРОГО СТЫКУЕМЫЕ ЗАБОРЫ И КАЛИТКИ (Длина секции = 1.2) ---
+            // --- СТРОГО СТЫКУЕМЫЕ ЗАБОРЫ И КАЛИТКИ С СЕКЦИЯМИ ОТ 0 ДО 1.2 ---
             else if (isFenceOrGate(type)) {
                 const isGate = type.startsWith('gate_');
                 const baseType = type.replace('gate_', 'fence_');
@@ -567,46 +566,46 @@
 
                 if (!isGate) {
                     if (baseType === 'fence_wood') {
-                        for (let i = -0.5; i <= 0.5; i += 0.33) {
+                        for (let i = 0.1; i <= 1.1; i += 0.33) {
                             const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.65, 0.1), mat);
                             post.position.set(i, 0.325, 0);
                             post.castShadow = true;
                             group.add(post);
                         }
                         const beam1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
-                        beam1.position.set(0, 0.48, 0);
+                        beam1.position.set(0.6, 0.48, 0);
                         group.add(beam1);
 
                         const beam2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat);
-                        beam2.position.set(0, 0.18, 0);
+                        beam2.position.set(0.6, 0.18, 0);
                         group.add(beam2);
                     } else if (baseType === 'fence_stone' || baseType === 'fence_hedge') {
                         const geo = baseType === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
                         const obj = new THREE.Mesh(geo, mat);
-                        obj.position.y = baseType === 'fence_stone' ? 0.2 : 0.35;
+                        obj.position.set(0.6, baseType === 'fence_stone' ? 0.2 : 0.35, 0);
                         obj.castShadow = true;
                         group.add(obj);
                     } else if (baseType === 'fence_mossari') {
                         const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.15), mat);
-                        bar.position.y = 0.25;
+                        bar.position.set(0.6, 0.25, 0);
                         group.add(bar);
                         const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7 }));
-                        top.position.y = 0.52;
+                        top.position.set(0.6, 0.52, 0);
                         group.add(top);
                     }
                 } else {
                     const postMat = mat;
                     const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
-                    post1.position.set(-0.5, 0.325, 0);
+                    post1.position.set(0.06, 0.325, 0);
                     group.add(post1);
 
                     const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), postMat);
-                    post2.position.set(0.5, 0.325, 0);
+                    post2.position.set(1.14, 0.325, 0);
                     group.add(post2);
 
                     const gateMat = baseType === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.5 }) : postMat;
                     const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.06), gateMat);
-                    gateDoor.position.set(0, 0.3, 0);
+                    gateDoor.position.set(0.6, 0.3, 0);
                     group.add(gateDoor);
                 }
             }
@@ -615,7 +614,7 @@
         }
 
         // --- СОХРАНЕНИЕ ---
-        const SAVE_KEY = 'mossari_town_save_v9';
+        const SAVE_KEY = 'mossari_town_save_v10';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -628,7 +627,7 @@
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v8') || localStorage.getItem('mossari_town_save_v7');
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v9') || localStorage.getItem('mossari_town_save_v8');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -645,7 +644,7 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ И ИДЕАЛЬНАЯ СТЫКОВКА ТОРЕЦ-В-ТОРЕЦ ---
+        // --- УПРАВЛЕНИЕ И ТОЧНОЕ СЕТЕВОЕ СКРЕПЛЕНИЕ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -729,7 +728,6 @@
                         let posZ = intersect.point.z;
                         let snapRotation = 0;
 
-                        // --- ЕДИНАЯ СЕТКА И АВТО-ОРИЕНТАЦИЯ СТЫКОВ ---
                         if (isFenceOrGate(currentTool)) {
                             const step = 1.2;
                             const gridX = Math.round(posX / step) * step;
@@ -783,7 +781,7 @@
                         // Проверка на наложение объектов
                         let tooClose = false;
                         placedObjects.forEach(item => {
-                            const minDist = isFenceOrGate(currentTool) ? 0.65 : 
+                            const minDist = isFenceOrGate(currentTool) ? 0.6 : 
                                           (currentTool === 'mall' || currentTool === 'admin' ? 3.0 : 1.0);
                             if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
                                 tooClose = true;
