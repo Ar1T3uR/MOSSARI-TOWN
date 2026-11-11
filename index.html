@@ -74,7 +74,6 @@
             border: 1px solid rgba(197, 160, 89, 0.3);
         }
 
-        /* Панель управления и подменю заборов */
         .bottom-ui {
             display: flex;
             flex-direction: column;
@@ -212,7 +211,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Используйте зум справа или скролл. Выбирайте постройки!</div>
+            <div class="instruction">Двигайте карту пальцем. Заборы стыкуются автоматически!</div>
             
             <!-- Выпадающее подменю для 4 вариантов заборов -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -268,7 +267,6 @@
 
         function selectFence(fenceType) {
             setTool(fenceType);
-            // Меняем иконку и подпись главной кнопки забора в зависимости от выбранного
             const icons = {
                 'fence_wood': '🪵',
                 'fence_stone': '🏛️',
@@ -305,12 +303,15 @@
         let cameraRadius = 28;
         let cameraAngle = 0;
         let cameraHeight = 25;
+        
+        // Центр камеры для перемещения карты (панорамирования)
+        const targetCenter = new THREE.Vector3(0, 0, 0);
 
         function updateCameraPosition() {
-            camera.position.x = Math.sin(cameraAngle) * cameraRadius;
-            camera.position.z = Math.cos(cameraAngle) * cameraRadius;
+            camera.position.x = targetCenter.x + Math.sin(cameraAngle) * cameraRadius;
+            camera.position.z = targetCenter.z + Math.cos(cameraAngle) * cameraRadius;
             camera.position.y = cameraHeight;
-            camera.lookAt(0, 0, 0);
+            camera.lookAt(targetCenter);
         }
         updateCameraPosition();
 
@@ -468,20 +469,20 @@
             return group;
         }
 
-        // --- СОХРАНЕНИЕ И ЗАГРУЗКА (Безопасный постоянный ключ v4) ---
+        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ---
         const SAVE_KEY = 'mossari_town_save_v4';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
                 type: item.type,
                 x: item.mesh.position.x,
-                z: item.mesh.position.z
+                z: item.mesh.position.z,
+                rotY: item.mesh.rotation.y
             }));
             localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
         }
 
         function loadGame() {
-            // Пытаемся загрузить с текущего ключа, а если пусто — пробуем подтянуть со старых версий, чтобы прогресс не пропал
             let savedData = localStorage.getItem(SAVE_KEY);
             if (!savedData) {
                 savedData = localStorage.getItem('mossari_town_save_v3') || localStorage.getItem('mossari_town_save_v2') || localStorage.getItem('mossari_town_save');
@@ -491,12 +492,12 @@
                 try {
                     const parsed = JSON.parse(savedData);
                     parsed.forEach(data => {
-                        // Обратная совместимость старых названий заборов, если они были сохранены иначе
                         let t = data.type;
                         if (t === 'fence') t = 'fence_wood';
                         
                         const model = createModel(t);
                         model.position.set(data.x, 0, data.z);
+                        if (data.rotY !== undefined) model.rotation.y = data.rotY;
                         scene.add(model);
                         placedObjects.push({ type: t, mesh: model });
                     });
@@ -514,6 +515,7 @@
         let pointerDownPos = { x: 0, y: 0 };
         let previousMousePosition = { x: 0, y: 0 };
 
+        // Перемещение карты (панорамирование) одним пальцем / мышкой
         window.addEventListener('pointerdown', (e) => {
             if (e.target.closest('.interactive') || e.target.closest('.zoom-controls')) return;
             isDragging = true;
@@ -532,7 +534,14 @@
             }
 
             const deltaX = e.clientX - previousMousePosition.x;
-            cameraAngle -= deltaX * 0.007;
+            const deltaY = e.clientY - previousMousePosition.y;
+
+            // Панорамирование карты по плоскости XZ с учетом угла камеры
+            const panSpeed = 0.02 * (cameraRadius * 0.05);
+            const angle = cameraAngle;
+            
+            targetCenter.x -= (deltaX * Math.cos(angle) - deltaY * Math.sin(angle)) * panSpeed;
+            targetCenter.z -= (deltaX * Math.sin(angle) + deltaY * Math.cos(angle)) * panSpeed;
 
             updateCameraPosition();
             previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -578,17 +587,57 @@
                             }
                         }
                     } else {
+                        // Постройка с автоматическим соединением заборов (snapping & alignment)
+                        let posX = intersect.point.x;
+                        let posZ = intersect.point.z;
+                        let snapRotation = 0;
+
+                        if (currentTool.startsWith('fence_')) {
+                            // Привязка к сетке с шагом 1.2 для идеальной стыковки заборов
+                            const step = 1.2;
+                            const gridX = Math.round(posX / step) * step;
+                            const gridZ = Math.round(posZ / step) * step;
+
+                            // Находим ближайший предыдущий забор, чтобы красиво повернуть новый забор для стыковки
+                            let nearestFence = null;
+                            let minD = 2.0;
+                            placedObjects.forEach(item => {
+                                if (item.type.startsWith('fence_')) {
+                                    const d = item.mesh.position.distanceTo(new THREE.Vector3(gridX, 0, gridZ));
+                                    if (d < minD) {
+                                        minD = d;
+                                        nearestFence = item;
+                                    }
+                                });
+                            });
+
+                            if (nearestFence) {
+                                // Определяем разницу по осям для выбора ориентации стыковки
+                                const dx = gridX - nearestFence.mesh.position.x;
+                                const dz = gridZ - nearestFence.mesh.position.z;
+                                if (Math.abs(dx) > Math.abs(dz)) {
+                                    snapRotation = Math.PI / 2;
+                                }
+                            }
+                            posX = gridX;
+                            posZ = gridZ;
+                        }
+
                         // Проверка на наложение объектов
                         let tooClose = false;
                         placedObjects.forEach(item => {
-                            if (item.mesh.position.distanceTo(intersect.point) < 1.0) {
+                            const minDist = currentTool.startsWith('fence_') ? 0.8 : 1.0;
+                            if (item.mesh.position.distanceTo(new THREE.Vector3(posX, 0, posZ)) < minDist) {
                                 tooClose = true;
                             }
                         });
 
                         if (!tooClose) {
                             const model = createModel(currentTool);
-                            model.position.set(intersect.point.x, 0, intersect.point.z);
+                            model.position.set(posX, 0, posZ);
+                            if (currentTool.startsWith('fence_')) {
+                                model.rotation.y = snapRotation;
+                            }
                             scene.add(model);
                             placedObjects.push({ type: currentTool, mesh: model });
                             saveGame();
