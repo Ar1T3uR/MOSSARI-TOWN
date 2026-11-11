@@ -224,7 +224,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Свободное перемещение во все стороны. Заборы и калитки стыкуются идеально!</div>
+            <div class="instruction">Заборы и калитки всегда автоматически скрепляются между собой!</div>
             
             <!-- Выпадающее подменю для заборов и калиток -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -615,7 +615,7 @@
         }
 
         // --- СОХРАНЕНИЕ ---
-        const SAVE_KEY = 'mossari_town_save_v7';
+        const SAVE_KEY = 'mossari_town_save_v8';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -628,7 +628,7 @@
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v6') || localStorage.getItem('mossari_town_save_v5');
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v7') || localStorage.getItem('mossari_town_save_v6');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
@@ -645,7 +645,7 @@
             }
         }
 
-        // --- УПРАВЛЕНИЕ: СВОБОДНОЕ ПАНОРАМИРОВАНИЕ ВО ВСЕ СТОРОНЫ И СТЫКОВКА ---
+        // --- УПРАВЛЕНИЕ И УМНОЕ СКРЕПЛЕНИЕ ОГРАЖДЕНИЙ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -674,12 +674,10 @@
             const deltaX = e.clientX - previousMousePosition.x;
             const deltaY = e.clientY - previousMousePosition.y;
 
-            // Свободное панорамирование во все стороны без ограничений с мягким ходом
             const panSpeed = 0.04;
             targetCenter.x -= deltaX * panSpeed;
             targetCenter.z -= deltaY * panSpeed;
 
-            // Ограничение центра карты в пределах 45 единиц, чтобы не улететь в пустоту
             targetCenter.x = Math.max(-45, Math.min(45, targetCenter.x));
             targetCenter.z = Math.max(-45, Math.min(45, targetCenter.z));
 
@@ -731,7 +729,7 @@
                         let posZ = intersect.point.z;
                         let snapRotation = 0;
 
-                        // --- УМНАЯ СТЫКОВКА ВСЕХ ОГРАЖДЕНИЙ (ВЕРТИКАЛЬНЫХ И ГОРИЗОНТАЛЬНЫХ) ---
+                        // --- ВСЕГДА АВТОМАТИЧЕСКОЕ СКРЕПЛЕНИЕ И СОЕДИНЕНИЕ ЗАБОРОВ ---
                         if (isFenceOrGate(currentTool)) {
                             const step = 1.2;
                             const gridX = Math.round(posX / step) * step;
@@ -743,21 +741,33 @@
                                 if (isFenceOrGate(item.type)) {
                                     const px = item.mesh.position.x;
                                     const pz = item.mesh.position.z;
-                                    if (Math.abs(px - (gridX - step)) < 0.2 && Math.abs(pz - gridZ) < 0.2) hasLeft = true;
-                                    if (Math.abs(px - (gridX + step)) < 0.2 && Math.abs(pz - gridZ) < 0.2) hasRight = true;
-                                    if (Math.abs(px - gridX) < 0.2 && Math.abs(pz - (gridZ - step)) < 0.2) hasUp = true;
-                                    if (Math.abs(px - gridX) < 0.2 && Math.abs(pz - (gridZ + step)) < 0.2) hasDown = true;
+                                    if (Math.abs(px - (gridX - step)) < 0.25 && Math.abs(pz - gridZ) < 0.25) hasLeft = true;
+                                    if (Math.abs(px - (gridX + step)) < 0.25 && Math.abs(pz - gridZ) < 0.25) hasRight = true;
+                                    if (Math.abs(px - gridX) < 0.25 && Math.abs(pz - (gridZ - step)) < 0.25) hasUp = true;
+                                    if (Math.abs(px - gridX) < 0.25 && Math.abs(pz - (gridZ + step)) < 0.25) hasDown = true;
                                 }
                             });
 
+                            // Если рядом есть соседи сверху или снизу — поворачиваем в вертикальный ряд
+                            // Если слева или справа — в горизонтальный ряд
+                            // При пересечении или углах скрепляем так, чтобы они касались друг друга
                             if ((hasUp || hasDown) && !(hasLeft || hasRight)) {
                                 snapRotation = Math.PI / 2;
                             } else if ((hasLeft || hasRight) && !(hasUp || hasDown)) {
                                 snapRotation = 0;
                             } else if (hasUp || hasDown) {
                                 snapRotation = Math.PI / 2;
-                            } else {
+                            } else if (hasLeft || hasRight) {
                                 snapRotation = 0;
+                            } else {
+                                // Если соседей нет совсем, проверяем последний размещенный забор для продолжения линии
+                                const lastFence = placedObjects.slice().reverse().find(item => isFenceOrGate(item.type));
+                                if (lastFence) {
+                                    const dist = lastFence.mesh.position.distanceTo(new THREE.Vector3(gridX, 0, gridZ));
+                                    if (dist < 2.0) {
+                                        snapRotation = lastFence.mesh.rotation.y;
+                                    }
+                                }
                             }
 
                             posX = gridX;
