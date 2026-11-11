@@ -205,11 +205,10 @@
         <div></div>
 
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Город разделен на районы с дорогами. Дороги неизменяемы.</div>
+            <div class="instruction" id="instructionText">Дороги проложены от края до края. Районы готовы для застройки.</div>
             
             <!-- Панель предметов -->
             <div id="buildPanel" class="build-panel-container interactive">
-                <!-- Главная панель инструментов (без ограждений) -->
                 <div class="toolbar interactive">
                     <div class="tool-btn active" id="btn_house" onclick="setTool('house')">
                         <span class="icon">🏠</span>Дом
@@ -263,7 +262,7 @@
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = false;
             } else {
                 buildPanel.classList.add('active');
-                instr.innerText = 'Режим постройки: здания размещаются на участках.';
+                instr.innerText = 'Режим постройки: размещайте здания в кварталах.';
                 if (typeof gridHelper !== 'undefined') gridHelper.visible = true;
             }
         }
@@ -523,7 +522,7 @@
             return group;
         }
 
-        const SAVE_KEY = 'mossari_town_save_v13';
+        const SAVE_KEY = 'mossari_town_save_v14';
 
         function saveGame() {
             const dataToSave = placedObjects.map(item => ({
@@ -535,21 +534,20 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
         }
 
-        // Генерация четких районов с дорогами и участками
-        function generateDistrictLayout() {
+        // Генерация дорог от края до края карты с делением на районы
+        function generateEdgeToEdgeRoadLayout() {
             const items = [];
-            const districtSize = 7.2; // размер одного района в ячейках (6 ячеек по 1.2)
-            const minC = -21.6;
-            const maxC = 21.6;
+            const districtSize = 7.2; // размер одного района
+            const minC = -36.0;
+            const maxC = 36.0;
 
-            // 1. Создаем неизменяемые дороги по периметрам и границам районов
+            // 1. Прокладываем непрерывные дороги от края до края по всей карте
             for (let x = minC; x <= maxC; x += CELL_SIZE) {
                 for (let z = minC; z <= maxC; z += CELL_SIZE) {
-                    // Проверяем, является ли координата границей района (дорога)
                     const isRoadX = Math.abs(x % districtSize) < 0.01;
                     const isRoadZ = Math.abs(z % districtSize) < 0.01;
 
-                    if (isRoadX || isRoadZ || x === minC || x === maxC || z === minC || z === maxC) {
+                    if (isRoadX || isRoadZ) {
                         const model = createModel('road');
                         model.position.set(x, 0, z);
                         scene.add(model);
@@ -558,7 +556,7 @@
                 }
             }
 
-            // 2. Расставляем стартовые здания внутри участков районов
+            // 2. Расставляем стартовые здания в некоторых кварталах
             const starterBuildings = [
                 { type: 'house', x: -14.4, z: -14.4 },
                 { type: 'mall', x: -7.2, z: -14.4 },
@@ -600,8 +598,7 @@
                 } catch(e) {}
             }
 
-            // Если сохранения нет, генерируем карту районов с дорогами
-            const defaultLayout = generateDistrictLayout();
+            const defaultLayout = generateEdgeToEdgeRoadLayout();
             defaultLayout.forEach(item => placedObjects.push(item));
             saveGame();
         }
@@ -658,7 +655,7 @@
                     let closestIndex = -1;
 
                     placedObjects.forEach((item, idx) => {
-                        if (item.isRoad) return; // Дороги нельзя удалять!
+                        if (item.isRoad) return; // Дороги нельзя удалить
                         const dist = item.mesh.position.distanceTo(intersects[0].point);
                         if (dist < minDist) {
                             minDist = dist;
@@ -749,7 +746,6 @@
             draggedObject = null;
         }
 
-        // Обработка касаний (Touch)
         window.addEventListener('touchstart', (e) => {
             if (e.target.closest('.interactive')) return;
             if (e.touches.length === 2) {
@@ -826,7 +822,6 @@
             }
         });
 
-        // Обработка мыши (Desktop)
         window.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'touch') return;
             if (e.target.closest('.interactive')) return;
