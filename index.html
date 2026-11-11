@@ -53,48 +53,56 @@
             pointer-events: auto;
         }
 
-        header {
-            background: rgba(20, 20, 28, 0.85);
-            backdrop-filter: blur(12px);
-            padding: 10px 16px;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* Заголовок по центру сверху */
+        .top-brand {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 28, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 6px 16px;
+            border-radius: 14px;
             border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            gap: 10px;
-        }
-
-        .brand-logo {
             font-weight: 800;
             letter-spacing: 2px;
-            font-size: 14px;
+            font-size: 13px;
             text-transform: uppercase;
-            white-space: nowrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 20;
         }
 
-        .brand-logo span {
+        .top-brand span {
             color: #c5a059;
         }
 
-        /* Переключатель режимов */
+        .bottom-ui {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        /* Переключатель режимов внизу */
         .mode-switcher {
             display: flex;
-            background: rgba(0,0,0,0.4);
-            border-radius: 12px;
-            padding: 3px;
+            background: rgba(20, 20, 28, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 4px;
             border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
         }
 
         .mode-btn {
             background: transparent;
             border: none;
-            color: #888;
-            font-size: 11px;
+            color: #aaa;
+            font-size: 12px;
             font-weight: 700;
-            padding: 5px 10px;
-            border-radius: 9px;
+            padding: 8px 18px;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -105,23 +113,23 @@
             box-shadow: 0 2px 10px rgba(197, 160, 89, 0.4);
         }
 
-        .user-info {
-            font-size: 11px;
-            font-weight: 600;
-            color: #c5a059;
-            background: rgba(197, 160, 89, 0.15);
-            padding: 5px 10px;
-            border-radius: 20px;
-            border: 1px solid rgba(197, 160, 89, 0.3);
-            white-space: nowrap;
-        }
-
-        .bottom-ui {
+        /* Панель с предметами (скрыта в режиме обзора, появляется в режиме стройки) */
+        .build-panel-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 8px;
             width: 100%;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+
+        .build-panel-container.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
         }
 
         .sub-menu {
@@ -208,70 +216,72 @@
 
     <div id="canvas-container"></div>
 
-    <div class="ui-layer">
-        <header class="interactive">
-            <div class="brand-logo">mossari <span>town</span></div>
-            
-            <!-- Переключатель режимов -->
-            <div class="mode-switcher">
-                <button id="btnModeView" class="mode-btn active" onclick="setInteractionMode('view')">👁️ Обзор</button>
-                <button id="btnModeBuild" class="mode-btn" onclick="setInteractionMode('build')">🔨 Стройка</button>
-            </div>
+    <!-- Заголовок по центру сверху -->
+    <div class="top-brand interactive">mossari <span>town</span></div>
 
-            <div class="user-info" id="username">Гость</div>
-        </header>
+    <div class="ui-layer">
+        <div></div> <!-- Верхний пустой блок для flex-space-between -->
 
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Режим обзора: карта свободно вращается и перемещается.</div>
+            <div class="instruction" id="instructionText">Режим обзора: карта свободно перемещается и зумируется.</div>
             
-            <!-- Выпадающее подменю для заборов и калиток -->
-            <div id="fenceSubMenu" class="sub-menu interactive">
-                <div class="tool-btn" id="btn_fence_wood" onclick="selectFence('fence_wood')">
-                    <span class="icon">🪵</span>Забор
+            <!-- Панель предметов (появляется только в режиме стройки) -->
+            <div id="buildPanel" class="build-panel-container interactive">
+                <!-- Выпадающее подменю для заборов и калиток -->
+                <div id="fenceSubMenu" class="sub-menu interactive">
+                    <div class="tool-btn" id="btn_fence_wood" onclick="selectFence('fence_wood')">
+                        <span class="icon">🪵</span>Забор
+                    </div>
+                    <div class="tool-btn" id="btn_gate_wood" onclick="selectFence('gate_wood')">
+                        <span class="icon">🚪</span>Калитка
+                    </div>
+                    <div class="tool-btn" id="btn_fence_stone" onclick="selectFence('fence_stone')">
+                        <span class="icon">🏛️</span>Бордюр
+                    </div>
+                    <div class="tool-btn" id="btn_gate_stone" onclick="selectFence('gate_stone')">
+                        <span class="icon">🏛️🚪</span>Вх.бордюр
+                    </div>
+                    <div class="tool-btn" id="btn_fence_hedge" onclick="selectFence('fence_hedge')">
+                        <span class="icon">🌿</span>Изгородь
+                    </div>
+                    <div class="tool-btn" id="btn_gate_hedge" onclick="selectFence('gate_hedge')">
+                        <span class="icon">🌿🚪</span>Вх.изгородь
+                    </div>
+                    <div class="tool-btn" id="btn_fence_mossari" onclick="selectFence('fence_mossari')">
+                        <span class="icon">✨</span>Mossari
+                    </div>
+                    <div class="tool-btn" id="btn_gate_mossari" onclick="selectFence('gate_mossari')">
+                        <span class="icon">✨🚪</span>Mossari калитка
+                    </div>
                 </div>
-                <div class="tool-btn" id="btn_gate_wood" onclick="selectFence('gate_wood')">
-                    <span class="icon">🚪</span>Калитка
-                </div>
-                <div class="tool-btn" id="btn_fence_stone" onclick="selectFence('fence_stone')">
-                    <span class="icon">🏛️</span>Бордюр
-                </div>
-                <div class="tool-btn" id="btn_gate_stone" onclick="selectFence('gate_stone')">
-                    <span class="icon">🏛️🚪</span>Вх.бордюр
-                </div>
-                <div class="tool-btn" id="btn_fence_hedge" onclick="selectFence('fence_hedge')">
-                    <span class="icon">🌿</span>Изгородь
-                </div>
-                <div class="tool-btn" id="btn_gate_hedge" onclick="selectFence('gate_hedge')">
-                    <span class="icon">🌿🚪</span>Вх.изгородь
-                </div>
-                <div class="tool-btn" id="btn_fence_mossari" onclick="selectFence('fence_mossari')">
-                    <span class="icon">✨</span>Mossari
-                </div>
-                <div class="tool-btn" id="btn_gate_mossari" onclick="selectFence('gate_mossari')">
-                    <span class="icon">✨🚪</span>Mossari калитка
+
+                <!-- Главная панель инструментов -->
+                <div class="toolbar interactive">
+                    <div class="tool-btn active" id="btn_house" onclick="setTool('house')">
+                        <span class="icon">🏠</span>Дом
+                    </div>
+                    <div class="tool-btn" id="btn_mall" onclick="setTool('mall')">
+                        <span class="icon">🏬</span>ТЦ
+                    </div>
+                    <div class="tool-btn" id="btn_admin" onclick="setTool('admin')">
+                        <span class="icon">🏢</span>Админ
+                    </div>
+                    <div class="tool-btn" id="btn_tree" onclick="setTool('tree')">
+                        <span class="icon">🌲</span>Дерево
+                    </div>
+                    <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
+                        <span class="icon">🚧</span>Ограждение
+                    </div>
+                    <div class="tool-btn" id="btn_eraser" onclick="setTool('eraser')">
+                        <span class="icon">❌</span>Удалить
+                    </div>
                 </div>
             </div>
 
-            <!-- Главная панель инструментов -->
-            <div class="toolbar interactive">
-                <div class="tool-btn active" id="btn_house" onclick="setTool('house')">
-                    <span class="icon">🏠</span>Дом
-                </div>
-                <div class="tool-btn" id="btn_mall" onclick="setTool('mall')">
-                    <span class="icon">🏬</span>ТЦ
-                </div>
-                <div class="tool-btn" id="btn_admin" onclick="setTool('admin')">
-                    <span class="icon">🏢</span>Админ
-                </div>
-                <div class="tool-btn" id="btn_tree" onclick="setTool('tree')">
-                    <span class="icon">🌲</span>Дерево
-                </div>
-                <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
-                    <span class="icon">🚧</span>Ограждение
-                </div>
-                <div class="tool-btn" id="btn_eraser" onclick="setTool('eraser')">
-                    <span class="icon">❌</span>Удалить
-                </div>
+            <!-- Переключатель режимов внизу -->
+            <div class="mode-switcher interactive">
+                <button id="btnModeView" class="mode-btn active" onclick="setInteractionMode('view')">👁️ Обзор</button>
+                <button id="btnModeBuild" class="mode-btn" onclick="setInteractionMode('build')">🔨 Стройка</button>
             </div>
         </div>
     </div>
@@ -286,11 +296,6 @@
             }
         } catch(e) {}
 
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const user = tg.initDataUnsafe.user;
-            document.getElementById('username').innerText = user.first_name || 'Житель';
-        }
-
         let currentTool = 'house';
         let interactionMode = 'view'; // 'view' (просмотр) или 'build' (постройка)
 
@@ -299,10 +304,15 @@
             document.getElementById('btnModeView').classList.toggle('active', mode === 'view');
             document.getElementById('btnModeBuild').classList.toggle('active', mode === 'build');
 
+            const buildPanel = document.getElementById('buildPanel');
             const instr = document.getElementById('instructionText');
+
             if (mode === 'view') {
-                instr.innerText = 'Режим обзора: карта свободно перемещается и зумируется без случайных кликов.';
+                buildPanel.classList.remove('active');
+                document.getElementById('fenceSubMenu').classList.remove('active');
+                instr.innerText = 'Режим обзора: карта свободно перемещается и зумируется.';
             } else {
+                buildPanel.classList.add('active');
                 instr.innerText = 'Режим постройки: тапайте по полю для установки или удаления предметов.';
             }
         }
@@ -341,7 +351,6 @@
                 if (btn) btn.classList.add('active');
                 document.getElementById('fenceSubMenu').classList.remove('active');
             }
-            // Автоматически переключаем в режим постройки при выборе инструмента
             setInteractionMode('build');
         }
 
@@ -663,7 +672,6 @@
         let startCameraHeight = cameraHeight;
 
         function handleInteractionAction(clientX, clientY) {
-            // Если включен режим просмотра — тапы по земле не ставят и не удаляют предметы
             if (interactionMode !== 'build') return;
 
             mouse.x = (clientX / window.innerWidth) * 2 - 1;
@@ -833,7 +841,7 @@
                 initialPinchDistance = null;
             }
             if (isDragging && !hasMoved) {
-                if (!e.target.closest('.interactive') && !e.target.closest('header')) {
+                if (!e.target.closest('.interactive')) {
                     const lastTouch = e.changedTouches[0];
                     if (lastTouch) {
                         handleInteractionAction(lastTouch.clientX, lastTouch.clientY);
@@ -885,7 +893,7 @@
             isDragging = false;
 
             if (!hasMoved) {
-                if (e.target.closest('.interactive') || e.target.closest('header')) {
+                if (e.target.closest('.interactive')) {
                     return;
                 }
                 handleInteractionAction(e.clientX, e.clientY);
