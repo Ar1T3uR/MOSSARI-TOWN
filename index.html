@@ -2,25 +2,32 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Mossari Town</title>
     <!-- Подключаем официальный скрипт Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
+        body, html {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color, #1a1a24);
-            color: var(--tg-theme-text-color, #ffffff);
+            background-color: #1a1a24;
+            color: #ffffff;
             user-select: none;
+            -webkit-user-select: none;
         }
 
         #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100vw;
             height: 100vh;
             display: block;
+            z-index: 1;
         }
 
         .ui-layer {
@@ -35,6 +42,7 @@
             justify-content: space-between;
             box-sizing: border-box;
             padding: 20px;
+            z-index: 10;
         }
 
         .interactive {
@@ -84,23 +92,17 @@
 
         .sub-menu {
             display: none;
-            background: rgba(20, 20, 28, 0.9);
+            background: rgba(20, 20, 28, 0.95);
             backdrop-filter: blur(12px);
             padding: 8px;
             border-radius: 16px;
             gap: 8px;
             border: 1px solid rgba(197, 160, 89, 0.3);
             box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-            animation: fadeIn 0.2s ease-in-out;
         }
 
         .sub-menu.active {
             display: flex;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .toolbar {
@@ -153,6 +155,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            z-index: 20;
         }
 
         .zoom-btn {
@@ -170,13 +173,6 @@
             justify-content: center;
             cursor: pointer;
             box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-            transition: all 0.15s ease;
-        }
-
-        .zoom-btn:active {
-            transform: scale(0.92);
-            background: rgba(197, 160, 89, 0.3);
-            border-color: #c5a059;
         }
 
         .instruction {
@@ -186,7 +182,6 @@
             border-radius: 12px;
             font-size: 12px;
             margin-bottom: 6px;
-            align-self: center;
             backdrop-filter: blur(6px);
             border: 1px solid rgba(255,255,255,0.05);
         }
@@ -212,7 +207,7 @@
         </header>
 
         <div class="bottom-ui">
-            <div class="instruction">Добавлен современный ТЦ Mossari! Карту можно двигать пальцем.</div>
+            <div class="instruction">Двигайте карту пальцем. Ставьте дома, ТЦ, деревья и заборы!</div>
             
             <!-- Выпадающее подменю для 4 вариантов заборов -->
             <div id="fenceSubMenu" class="sub-menu interactive">
@@ -254,7 +249,9 @@
     <script>
         // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
-        tg.expand();
+        try {
+            tg.expand();
+        } catch(e) {}
 
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
@@ -263,7 +260,6 @@
 
         let currentTool = 'house';
 
-        // Управление подменю заборов
         function toggleFenceMenu() {
             const subMenu = document.getElementById('fenceSubMenu');
             subMenu.classList.toggle('active');
@@ -287,28 +283,28 @@
             
             if (tool.startsWith('fence_')) {
                 document.getElementById('btn_fence_main').classList.add('active');
-                document.getElementById('btn_' + tool).classList.add('active');
+                const btn = document.getElementById('btn_' + tool);
+                if (btn) btn.classList.add('active');
             } else {
                 const btn = document.getElementById('btn_' + tool);
                 if (btn) btn.classList.add('active');
-                if (!tool.startsWith('fence_')) {
-                    document.getElementById('fenceSubMenu').classList.remove('active');
-                }
+                document.getElementById('fenceSubMenu').classList.remove('active');
             }
         }
 
-        // Инициализация Three.js 3D мира
+        // --- 3D МИР (Three.js) ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x12121a);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const width = window.innerWidth || 800;
+        const height = window.innerHeight || 600;
+
+        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
         
         let cameraRadius = 28;
         let cameraAngle = 0;
         let cameraHeight = 25;
-        
-        // Центр камеры для перемещения карты (панорамирования)
         const targetCenter = new THREE.Vector3(0, 0, 0);
 
         function updateCameraPosition() {
@@ -319,7 +315,6 @@
         }
         updateCameraPosition();
 
-        // Функции кнопок зума справа
         function zoomIn() {
             cameraRadius -= 3;
             if (cameraRadius < 8) cameraRadius = 8;
@@ -334,8 +329,9 @@
             updateCameraPosition();
         }
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
 
@@ -347,7 +343,7 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Увеличенная лужайка (50x50)
+        // Лужайка
         const groundGeo = new THREE.PlaneGeometry(50, 50);
         const groundMat = new THREE.MeshStandardMaterial({ color: 0x24342b, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -357,80 +353,61 @@
 
         const placedObjects = [];
 
-        // Создание моделей
         function createModel(type) {
             const group = new THREE.Group();
 
             if (type === 'house') {
                 const baseMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 });
-                const baseGeo = new THREE.BoxGeometry(1.4, 1.1, 1.4);
-                const base = new THREE.Mesh(baseGeo, baseMat);
+                const base = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 1.4), baseMat);
                 base.position.y = 0.55;
                 base.castShadow = true;
                 group.add(base);
 
                 const roofMat = new THREE.MeshStandardMaterial({ color: 0xc84b31, roughness: 0.4 });
-                const roofGeo = new THREE.ConeGeometry(1.1, 0.9, 4);
-                const roof = new THREE.Mesh(roofGeo, roofMat);
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.9, 4), roofMat);
                 roof.position.y = 1.55;
                 roof.rotation.y = Math.PI / 4;
                 roof.castShadow = true;
                 group.add(roof);
 
-                const doorMat = new THREE.MeshStandardMaterial({ color: 0x5a3d28 });
-                const doorGeo = new THREE.BoxGeometry(0.35, 0.55, 0.05);
-                const door = new THREE.Mesh(doorGeo, doorMat);
+                const door = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.55, 0.05), new THREE.MeshStandardMaterial({ color: 0x5a3d28 }));
                 door.position.set(0, 0.28, 0.71);
                 group.add(door);
 
-                const windowMat = new THREE.MeshStandardMaterial({ color: 0x33b5e5, roughness: 0.1 });
-                const winGeo = new THREE.BoxGeometry(0.3, 0.3, 0.05);
-                
-                const win1 = new THREE.Mesh(winGeo, windowMat);
+                const winMat = new THREE.MeshStandardMaterial({ color: 0x33b5e5, roughness: 0.1 });
+                const win1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.05), winMat);
                 win1.position.set(-0.38, 0.7, 0.71);
                 group.add(win1);
 
-                const win2 = new THREE.Mesh(winGeo, windowMat);
+                const win2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.05), winMat);
                 win2.position.set(0.38, 0.7, 0.71);
                 group.add(win2);
             } 
-            // 🏬 Современный Торговый Центр Mossari
             else if (type === 'mall') {
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 });
-                const bodyGeo = new THREE.BoxGeometry(2.4, 1.6, 2.0);
-                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.6, 2.0), new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 }));
                 body.position.y = 0.8;
                 body.castShadow = true;
                 group.add(body);
 
-                const glassMat = new THREE.MeshStandardMaterial({ color: 0x4090b0, roughness: 0.1, transparent: true, opacity: 0.7 });
-                const glassGeo = new THREE.BoxGeometry(2.0, 0.9, 2.05);
-                const glass = new THREE.Mesh(glassGeo, glassMat);
+                const glass = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.9, 2.05), new THREE.MeshStandardMaterial({ color: 0x4090b0, roughness: 0.1, transparent: true, opacity: 0.7 }));
                 glass.position.y = 0.65;
                 group.add(glass);
 
-                const roofMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.6, roughness: 0.2 });
-                const roofGeo = new THREE.BoxGeometry(2.6, 0.15, 2.2);
-                const roof = new THREE.Mesh(roofGeo, roofMat);
+                const roof = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.15, 2.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.6, roughness: 0.2 }));
                 roof.position.y = 1.67;
                 roof.castShadow = true;
                 group.add(roof);
 
-                const topBoxGeo = new THREE.BoxGeometry(1.2, 0.4, 1.0);
-                const topBox = new THREE.Mesh(topBoxGeo, bodyMat);
+                const topBox = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 1.0), new THREE.MeshStandardMaterial({ color: 0x181820 }));
                 topBox.position.set(0, 1.95, 0);
                 group.add(topBox);
 
-                const signMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x554000 });
-                const signGeo = new THREE.BoxGeometry(0.8, 0.12, 1.05);
-                const sign = new THREE.Mesh(signGeo, signMat);
+                const sign = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 1.05), new THREE.MeshStandardMaterial({ color: 0xffd700 }));
                 sign.position.set(0, 2.2, 0);
                 group.add(sign);
             }
             else if (type === 'tree') {
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6e4727 });
-                const trunkGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.8);
-                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8), new THREE.MeshStandardMaterial({ color: 0x6e4727 }));
                 trunk.position.y = 0.4;
                 trunk.castShadow = true;
                 group.add(trunk);
@@ -438,75 +415,55 @@
                 const leavesMat1 = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7 });
                 const leavesMat2 = new THREE.MeshStandardMaterial({ color: 0x3cb371, roughness: 0.7 });
 
-                const sphereGeo1 = new THREE.DodecahedronGeometry(0.65);
-                const leafCluster1 = new THREE.Mesh(sphereGeo1, leavesMat1);
-                leafCluster1.position.y = 1.0;
-                leafCluster1.castShadow = true;
-                group.add(leafCluster1);
+                const leaf1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65), leavesMat1);
+                leaf1.position.y = 1.0;
+                leaf1.castShadow = true;
+                group.add(leaf1);
 
-                const sphereGeo2 = new THREE.DodecahedronGeometry(0.45);
-                const leafCluster2 = new THREE.Mesh(sphereGeo2, leavesMat2);
-                leafCluster2.position.set(0.25, 1.25, 0.1);
-                leafCluster2.castShadow = true;
-                group.add(leafCluster2);
+                const leaf2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45), leavesMat2);
+                leaf2.position.set(0.25, 1.25, 0.1);
+                leaf2.castShadow = true;
+                group.add(leaf2);
 
-                const leafCluster3 = new THREE.Mesh(sphereGeo2, leavesMat2);
-                leafCluster3.position.set(-0.2, 1.15, -0.2);
-                leafCluster3.castShadow = true;
-                group.add(leafCluster3);
+                const leaf3 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45), leavesMat2);
+                leaf3.position.set(-0.2, 1.15, -0.2);
+                leaf3.castShadow = true;
+                group.add(leaf3);
             }
-            else if (type === 'fence_wood') {
-                const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 });
-                for (let i = -0.5; i <= 0.5; i += 0.35) {
-                    const postGeo = new THREE.BoxGeometry(0.1, 0.6, 0.1);
-                    const post = new THREE.Mesh(postGeo, woodMat);
-                    post.position.set(i, 0.3, 0);
-                    group.add(post);
+            else if (type.startsWith('fence_')) {
+                const mat = type === 'fence_stone' ? new THREE.MeshStandardMaterial({ color: 0x707070 }) :
+                            type === 'fence_hedge' ? new THREE.MeshStandardMaterial({ color: 0x2e6b3e }) :
+                            type === 'fence_mossari' ? new THREE.MeshStandardMaterial({ color: 0x181818 }) :
+                            new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
+
+                if (type === 'fence_wood') {
+                    for (let i = -0.5; i <= 0.5; i += 0.35) {
+                        const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), mat);
+                        post.position.set(i, 0.3, 0);
+                        group.add(post);
+                    }
+                    group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.45, 0) }));
+                    group.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.05), mat), { position: new THREE.Vector3(0, 0.15, 0) }));
+                } else if (type === 'fence_stone' || type === 'fence_hedge') {
+                    const geo = type === 'fence_stone' ? new THREE.BoxGeometry(1.2, 0.4, 0.3) : new THREE.BoxGeometry(1.2, 0.7, 0.4);
+                    const obj = new THREE.Mesh(geo, mat);
+                    obj.position.y = type === 'fence_stone' ? 0.2 : 0.35;
+                    obj.castShadow = true;
+                    group.add(obj);
+                } else if (type === 'fence_mossari') {
+                    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.15), mat);
+                    bar.position.y = 0.25;
+                    group.add(bar);
+                    const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 0.2), new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7 }));
+                    top.position.y = 0.52;
+                    group.add(top);
                 }
-                const beamGeo1 = new THREE.BoxGeometry(1.2, 0.08, 0.05);
-                const beam1 = new THREE.Mesh(beamGeo1, woodMat);
-                beam1.position.set(0, 0.45, 0);
-                group.add(beam1);
-
-                const beam2 = new THREE.Mesh(beamGeo1, woodMat);
-                beam2.position.set(0, 0.15, 0);
-                group.add(beam2);
-            }
-            else if (type === 'fence_stone') {
-                const stoneMat = new THREE.MeshStandardMaterial({ color: 0x707070, roughness: 0.6 });
-                const stoneGeo = new THREE.BoxGeometry(1.2, 0.4, 0.3);
-                const stone = new THREE.Mesh(stoneGeo, stoneMat);
-                stone.position.y = 0.2;
-                stone.castShadow = true;
-                group.add(stone);
-            }
-            else if (type === 'fence_hedge') {
-                const hedgeMat = new THREE.MeshStandardMaterial({ color: 0x2e6b3e, roughness: 0.9 });
-                const hedgeGeo = new THREE.BoxGeometry(1.2, 0.7, 0.4);
-                const hedge = new THREE.Mesh(hedgeGeo, hedgeMat);
-                hedge.position.y = 0.35;
-                hedge.castShadow = true;
-                group.add(hedge);
-            }
-            else if (type === 'fence_mossari') {
-                const baseMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.3 });
-                const goldMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.7, roughness: 0.2 });
-
-                const barGeo = new THREE.BoxGeometry(1.2, 0.5, 0.15);
-                const bar = new THREE.Mesh(barGeo, baseMat);
-                bar.position.y = 0.25;
-                group.add(bar);
-
-                const topGeo = new THREE.BoxGeometry(1.25, 0.08, 0.2);
-                const top = new THREE.Mesh(topGeo, goldMat);
-                top.position.y = 0.52;
-                group.add(top);
             }
 
             return group;
         }
 
-        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ---
+        // --- СОХРАНЕНИЕ ---
         const SAVE_KEY = 'mossari_town_save_v4';
 
         function saveGame() {
@@ -520,30 +477,24 @@
         }
 
         function loadGame() {
-            let savedData = localStorage.getItem(SAVE_KEY);
-            if (!savedData) {
-                savedData = localStorage.getItem('mossari_town_save_v3') || localStorage.getItem('mossari_town_save_v2') || localStorage.getItem('mossari_town_save');
-            }
-
+            let savedData = localStorage.getItem(SAVE_KEY) || localStorage.getItem('mossari_town_save_v3');
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
                     parsed.forEach(data => {
                         let t = data.type;
                         if (t === 'fence') t = 'fence_wood';
-                        
                         const model = createModel(t);
                         model.position.set(data.x, 0, data.z);
                         if (data.rotY !== undefined) model.rotation.y = data.rotY;
                         scene.add(model);
                         placedObjects.push({ type: t, mesh: model });
                     });
-                } catch(e) {
-                    console.error("Ошибка загрузки сохранения", e);
-                }
+                } catch(e) {}
             }
         }
 
+        // --- УПРАВЛЕНИЕ И КЛИКИ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -552,7 +503,6 @@
         let pointerDownPos = { x: 0, y: 0 };
         let previousMousePosition = { x: 0, y: 0 };
 
-        // Перемещение карты (панорамирование) одним пальцем / мышкой
         window.addEventListener('pointerdown', (e) => {
             if (e.target.closest('.interactive') || e.target.closest('.zoom-controls')) return;
             isDragging = true;
@@ -573,12 +523,9 @@
             const deltaX = e.clientX - previousMousePosition.x;
             const deltaY = e.clientY - previousMousePosition.y;
 
-            // Панорамирование карты по плоскости XZ с учетом угла камеры
             const panSpeed = 0.02 * (cameraRadius * 0.05);
-            const angle = cameraAngle;
-            
-            targetCenter.x -= (deltaX * Math.cos(angle) - deltaY * Math.sin(angle)) * panSpeed;
-            targetCenter.z -= (deltaX * Math.sin(angle) + deltaY * Math.cos(angle)) * panSpeed;
+            targetCenter.x -= (deltaX * Math.cos(cameraAngle) - deltaY * Math.sin(cameraAngle)) * panSpeed;
+            targetCenter.z -= (deltaX * Math.sin(cameraAngle) + deltaY * Math.cos(cameraAngle)) * panSpeed;
 
             updateCameraPosition();
             previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -624,18 +571,15 @@
                             }
                         }
                     } else {
-                        // Постройка с автоматическим соединением заборов (snapping & alignment)
                         let posX = intersect.point.x;
                         let posZ = intersect.point.z;
                         let snapRotation = 0;
 
                         if (currentTool.startsWith('fence_')) {
-                            // Привязка к сетке с шагом 1.2 для идеальной стыковки заборов
                             const step = 1.2;
                             const gridX = Math.round(posX / step) * step;
                             const gridZ = Math.round(posZ / step) * step;
 
-                            // Находим ближайший предыдущий забор, чтобы красиво повернуть новый забор для стыковки
                             let nearestFence = null;
                             let minD = 2.0;
                             placedObjects.forEach(item => {
@@ -645,7 +589,7 @@
                                         minD = d;
                                         nearestFence = item;
                                     }
-                                });
+                                }
                             });
 
                             if (nearestFence) {
@@ -659,7 +603,6 @@
                             posZ = gridZ;
                         }
 
-                        // Проверка на наложение объектов
                         let tooClose = false;
                         placedObjects.forEach(item => {
                             const minDist = currentTool.startsWith('fence_') ? 0.8 : (currentTool === 'mall' ? 2.0 : 1.0);
@@ -683,45 +626,14 @@
             }
         });
 
-        // Плавный зум колесиком мыши
         window.addEventListener('wheel', (e) => {
             cameraRadius += e.deltaY * 0.03;
             if (cameraRadius < 8) cameraRadius = 8;
             if (cameraRadius > 48) cameraRadius = 48;
-
             cameraHeight = cameraRadius * 0.9;
             updateCameraPosition();
         }, { passive: true });
 
-        // Зумирование щипком двумя пальцами на мобильных
-        let initialTouchDist = 0;
-        window.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                initialTouchDist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-            }
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                const currentDist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                const diff = initialTouchDist - currentDist;
-                cameraRadius += diff * 0.05;
-                if (cameraRadius < 8) cameraRadius = 8;
-                if (cameraRadius > 48) cameraRadius = 48;
-
-                cameraHeight = cameraRadius * 0.9;
-                updateCameraPosition();
-                initialTouchDist = currentDist;
-            }
-        });
-
-        // Загружаем сохраненный мир при старте
         loadGame();
 
         function animate() {
@@ -731,9 +643,11 @@
         animate();
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(w, h);
         });
     </script>
 </body>
