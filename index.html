@@ -53,7 +53,7 @@
             pointer-events: auto;
         }
 
-        /* Заголовок по центру на уровне кнопки «Закрыть» в Telegram */
+        /* Заголовок по центру на уровне кнопки «Закрыть» */
         .top-brand {
             position: absolute;
             top: 56px;
@@ -311,9 +311,11 @@
                 buildPanel.classList.remove('active');
                 document.getElementById('fenceSubMenu').classList.remove('active');
                 instr.innerText = 'Режим обзора: карта свободно перемещается и зумируется.';
+                if (typeof gridHelper !== 'undefined') gridHelper.visible = false;
             } else {
                 buildPanel.classList.add('active');
                 instr.innerText = 'Режим постройки: тапайте по полю для установки или удаления предметов.';
+                if (typeof gridHelper !== 'undefined') gridHelper.visible = true;
             }
         }
 
@@ -425,6 +427,12 @@
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
+
+        // --- СЕТКА ДЛЯ РЕЖИМА СТРОЙКИ ---
+        const gridHelper = new THREE.GridHelper(96, 80, 0xc5a059, 0x457555);
+        gridHelper.position.y = 0.02;
+        gridHelper.visible = false; // скрыта по умолчанию в режиме обзора
+        scene.add(gridHelper);
 
         const placedObjects = [];
 
