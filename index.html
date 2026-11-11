@@ -113,7 +113,7 @@
             box-shadow: 0 2px 10px rgba(197, 160, 89, 0.4);
         }
 
-        /* Панель с предметами (скрыта в режиме обзора, появляется в режиме стройки) */
+        /* Панель с предметами */
         .build-panel-container {
             display: flex;
             flex-direction: column;
@@ -223,9 +223,9 @@
         <div></div>
 
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Режим обзора: карта свободно перемещается и зумируется.</div>
+            <div class="instruction" id="instructionText">Режим постройки: выбирайте предметы и управляйте ориентацией забора.</div>
             
-            <!-- Панель предметов (появляется только в режиме стройки) -->
+            <!-- Панель предметов -->
             <div id="buildPanel" class="build-panel-container interactive">
                 <!-- Выпадающее подменю для заборов и калиток -->
                 <div id="fenceSubMenu" class="sub-menu interactive">
@@ -272,6 +272,10 @@
                     <div class="tool-btn" id="btn_fence_main" onclick="toggleFenceMenu()">
                         <span class="icon">🚧</span>Ограждение
                     </div>
+                    <!-- Кнопка поворота забора (активна только для заборов/калиток) -->
+                    <div class="tool-btn" id="btn_rotate_fence" onclick="toggleFenceRotation()" style="display:none; border-color:#c5a059;">
+                        <span class="icon" id="rotateIcon">🔄</span><span id="rotateLabel">Гор.</span>
+                    </div>
                     <div class="tool-btn" id="btn_eraser" onclick="setTool('eraser')">
                         <span class="icon">❌</span>Удалить
                     </div>
@@ -287,7 +291,6 @@
     </div>
 
     <script>
-        // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
         try { 
             tg.expand(); 
@@ -297,7 +300,8 @@
         } catch(e) {}
 
         let currentTool = 'house';
-        let interactionMode = 'view'; // 'view' (просмотр) или 'build' (постройка)
+        let interactionMode = 'view';
+        let fenceRotation = 0; // 0 - горизонтально (по X), Math.PI / 2 - вертикально (по Z)
 
         function setInteractionMode(mode) {
             interactionMode = mode;
@@ -324,6 +328,12 @@
             subMenu.classList.toggle('active');
         }
 
+        function toggleFenceRotation() {
+            fenceRotation = (fenceRotation === 0) ? Math.PI / 2 : 0;
+            const label = document.getElementById('rotateLabel');
+            label.innerText = fenceRotation === 0 ? 'Гор.' : 'Верт.';
+        }
+
         function selectFence(fenceType) {
             setTool(fenceType);
             const icons = {
@@ -344,14 +354,17 @@
             currentTool = tool;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             
+            const rotateBtn = document.getElementById('btn_rotate_fence');
             if (tool.startsWith('fence_') || tool.startsWith('gate_')) {
                 document.getElementById('btn_fence_main').classList.add('active');
                 const btn = document.getElementById('btn_' + tool);
                 if (btn) btn.classList.add('active');
+                rotateBtn.style.display = 'block';
             } else {
                 const btn = document.getElementById('btn_' + tool);
                 if (btn) btn.classList.add('active');
                 document.getElementById('fenceSubMenu').classList.remove('active');
+                rotateBtn.style.display = 'none';
             }
             setInteractionMode('build');
         }
@@ -392,7 +405,6 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // --- ГЕНЕРАЦИЯ СВЕТЛОЙ ТЕКСТУРИРОВАННОЙ ТРАВЫ ---
         function createGrassTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
@@ -428,24 +440,30 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // --- СЕТКА КВАДРАТОВ (ШАГ 1.2 метра соответствуют тайлам) ---
         const gridHelper = new THREE.GridHelper(96, 80, 0xc5a059, 0x457555);
         gridHelper.position.y = 0.02;
         gridHelper.visible = false;
         scene.add(gridHelper);
 
         const placedObjects = [];
-        const CELL_SIZE = 1.2; // Размер одного квадрата сетки
+        const CELL_SIZE = 1.2;
 
         function isFenceOrGate(type) {
             return type.startsWith('fence_') || type.startsWith('gate_');
         }
 
-        // Определение размера постройки в квадратах сетки
-        function getObjectSizeInCells(type) {
-            if (type === 'mall') return { w: 4, h: 4 }; // 4x4 квадрата (4.8 x 4.8)
-            if (type === 'admin') return { w: 3, h: 3 }; // 3x3 квадрата (3.6 x 3.6)
-            return { w: 1, h: 1 }; // дом, дерево, заборы — 1x1 квадрат (1.2 x 1.2)
+        function getObjectSizeInCells(type, rotY = 0) {
+            if (type === 'mall') return { w: 4, h: 4 };
+            if (type === 'admin') return { w: 3, h: 3 };
+            if (isFenceOrGate(type)) {
+                // Если забор повернут вертикально (Math.PI / 2), меняем размеры w и h местами
+                if (Math.abs(rotY - Math.PI / 2) < 0.1) {
+                    return { w: 1, h: 1 }; // Занимает 1 клетку по Z
+                } else {
+                    return { w: 1, h: 1 }; // Занимает 1 клетку по X
+                }
+            }
+            return { w: 1, h: 1 };
         }
 
         function createModel(type) {
@@ -483,7 +501,7 @@
                 innerGroup.add(win2);
             } 
             else if (type === 'mall') {
-                offsetX = 2.4; offsetZ = 2.4; // 4x4 квадрата (4.8 x 4.8)
+                offsetX = 2.4; offsetZ = 2.4;
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.2 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.2, 4.6), bodyMat);
                 body.position.y = 1.6;
@@ -523,7 +541,7 @@
                 innerGroup.add(sign);
             }
             else if (type === 'admin') {
-                offsetX = 1.8; offsetZ = 1.8; // 3x3 квадрата (3.6 x 3.6)
+                offsetX = 1.8; offsetZ = 1.8;
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3530, roughness: 0.4 });
                 const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.6, 3.4), wallMat);
                 body.position.y = 1.3;
@@ -652,7 +670,6 @@
             return group;
         }
 
-        // --- СОХРАНЕНИЕ ---
         const SAVE_KEY = 'mossari_town_save_v10';
 
         function saveGame() {
@@ -683,9 +700,8 @@
             }
         }
 
-        // --- ПРОВЕРКА ПЕРЕСЕЧЕНИЯ ГРАНИЦ КВАДРАТОВ (КЛЕТОК) ---
-        function checkCollision(posX, posZ, type, excludeObj = null) {
-            const size = getObjectSizeInCells(type);
+        function checkCollision(posX, posZ, type, rotY = 0, excludeObj = null) {
+            const size = getObjectSizeInCells(type, rotY);
             const myMinX = posX;
             const myMaxX = posX + size.w * CELL_SIZE;
             const myMinZ = posZ;
@@ -693,13 +709,13 @@
 
             for (let item of placedObjects) {
                 if (item === excludeObj) continue;
-                const otherSize = getObjectSizeInCells(item.type);
+                const otherRot = item.mesh.rotation.y;
+                const otherSize = getObjectSizeInCells(item.type, otherRot);
                 const otherMinX = item.mesh.position.x;
                 const otherMaxX = item.mesh.position.x + otherSize.w * CELL_SIZE;
                 const otherMinZ = item.mesh.position.z;
                 const otherMaxZ = item.mesh.position.z + otherSize.h * CELL_SIZE;
 
-                // Проверка пересечения прямоугольников тайлов
                 if (myMinX < otherMaxX && myMaxX > otherMinX && myMinZ < otherMaxZ && myMaxZ > otherMinZ) {
                     return true;
                 }
@@ -707,7 +723,6 @@
             return false;
         }
 
-        // --- ЛОГИКА УПРАВЛЕНИЯ, СТАВКИ И ПЕРЕТАСКИВАНИЯ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -755,7 +770,6 @@
                 return;
             }
 
-            // Попытка схватить существующий объект для перемещения
             const objectMeshes = placedObjects.map(item => item.mesh);
             const intersectsObjects = raycaster.intersectObjects(objectMeshes, true);
 
@@ -777,16 +791,17 @@
                 }
             }
 
-            // Ставим новый предмет по сетке квадратов
             const intersectsGround = raycaster.intersectObject(ground);
             if (intersectsGround.length > 0) {
                 const intersect = intersectsGround[0];
                 let posX = Math.round(intersect.point.x / CELL_SIZE) * CELL_SIZE;
                 let posZ = Math.round(intersect.point.z / CELL_SIZE) * CELL_SIZE;
+                let rotY = isFenceOrGate(currentTool) ? fenceRotation : 0;
 
-                if (!checkCollision(posX, posZ, currentTool)) {
+                if (!checkCollision(posX, posZ, currentTool, rotY)) {
                     const model = createModel(currentTool);
                     model.position.set(posX, 0, posZ);
+                    model.rotation.y = rotY;
                     scene.add(model);
                     placedObjects.push({ type: currentTool, mesh: model });
                     saveGame();
@@ -819,8 +834,9 @@
 
             let posX = draggedObject.mesh.position.x;
             let posZ = draggedObject.mesh.position.z;
+            let rotY = draggedObject.mesh.rotation.y;
 
-            if (checkCollision(posX, posZ, draggedObject.type)) {
+            if (checkCollision(posX, posZ, draggedObject.type, rotY, draggedObject)) {
                 scene.remove(draggedObject.mesh);
             } else {
                 placedObjects.push(draggedObject);
