@@ -85,7 +85,7 @@
     <div class="ui-layer">
         <div></div>
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Карта увеличена в 2 раза! Жители стали детализированнее и прогуливаются по улицам.</div>
+            <div class="instruction" id="instructionText">Чем больше домов вы строите, тем больше жителей появляется на улицах!</div>
             
             <div id="buildPanel" class="build-panel-container interactive">
                 <div class="toolbar interactive">
@@ -133,7 +133,7 @@
         try { tg.expand(); if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch(e) {}
 
         let currentTool = 'house', interactionMode = 'view', selectedObject = null;
-        let cameraRadius = 55, cameraHeight = 42; // Увеличено для обзора большой карты
+        let cameraRadius = 55, cameraHeight = 42;
         let playerBalance = 999999999;
         const targetCenter = new THREE.Vector3(0, 0, 0);
 
@@ -205,7 +205,7 @@
         dirLight.shadow.mapSize.height = 2048;
         dirLight.shadow.camera.near = 0.5;
         dirLight.shadow.camera.far = 250;
-        const d = 80; // Расширена зона теней для большой карты
+        const d = 80;
         dirLight.shadow.camera.left = -d;
         dirLight.shadow.camera.right = d;
         dirLight.shadow.camera.top = d;
@@ -213,7 +213,6 @@
         dirLight.shadow.bias = -0.0005;
         scene.add(dirLight);
 
-        // Увеличенная земля в 2 раза (200x200 вместо 100x100)
         const groundMat = new THREE.MeshStandardMaterial({ color: 0x3d7351, roughness: 0.9, flatShading: true });
         const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200, 20, 20), groundMat);
         ground.rotation.x = -Math.PI / 2;
@@ -225,7 +224,7 @@
         gridHelper.visible = false;
         scene.add(gridHelper);
 
-        const placedObjects = [], npcs = [], CELL_SIZE = 1.2;
+        const placedObjects = [], npcs = [], cars = [], CELL_SIZE = 1.2;
         const getObjectSize = (t) => buildingConfigs[t]?.size || {w:1, h:1};
 
         function createModel(type) {
@@ -326,40 +325,29 @@
             return group;
         }
 
-        // Улучшенные детализированные NPC (похожие на настоящих людей с прическами, туловищем и ногами)
+        // Создание детализированных NPC
         function createNPC() {
             const npcGroup = new THREE.Group();
-            
-            // Случайные цвета одежды
             const shirtMat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, roughness: 0.7, flatShading: true });
             const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.8, flatShading: true });
             const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.8, flatShading: true });
             const hairMat = new THREE.MeshStandardMaterial({ color: Math.random() * 0x553311, roughness: 0.8, flatShading: true });
 
-            // Голова
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), skinMat);
             head.position.y = 0.52; head.castShadow = true;
-
-            // Прическа / Шапка
             const hair = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.05, 0.13), hairMat);
             hair.position.y = 0.59; hair.castShadow = true;
-
-            // Туловище (Рубашка/Куртка)
             const torso = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.24, 0.1), shirtMat);
             torso.position.y = 0.32; torso.castShadow = true;
-
-            // Ноги (Брюки)
             const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.18, 0.08), pantsMat);
             legLeft.position.set(-0.05, 0.1, 0); legLeft.castShadow = true;
-
             const legRight = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.18, 0.08), pantsMat);
             legRight.position.set(0.05, 0.1, 0); legRight.castShadow = true;
 
             npcGroup.add(head, hair, torso, legLeft, legRight);
             
-            // Спавн по увеличенной карте на обочинах дорог
-            const roadSpacing = 7.2;
-            const coord = (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 11) * roadSpacing + 0.6);
+            const roadSpacing = 9.6;
+            const coord = (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 9) * roadSpacing + 0.8);
             const posCoord = (Math.random() - 0.5) * 80;
             
             if (Math.random() > 0.5) {
@@ -369,16 +357,43 @@
             }
 
             scene.add(npcGroup);
-            
             npcs.push({
                 mesh: npcGroup,
-                speed: 0.02 + Math.random() * 0.025,
+                speed: 0.02 + Math.random() * 0.02,
                 direction: Math.random() > 0.5 ? 1 : -1,
                 axis: Math.random() > 0.5 ? 'x' : 'z'
             });
         }
 
-        const SAVE_KEY = 'mossari_town_large_v1';
+        // Создание машин, ездящих по дорогам
+        function createMovingCar(type = 'car_com') {
+            const carModel = createModel(type);
+            const roadSpacing = 9.6;
+            const roadLines = [];
+            for (let i = -80; i <= 80; i += roadSpacing) roadLines.push(i);
+
+            const roadCoord = roadLines[Math.floor(Math.random() * roadLines.length)];
+            const posCoord = (Math.random() - 0.5) * 80;
+            const axis = Math.random() > 0.5 ? 'x' : 'z';
+
+            if (axis === 'x') {
+                carModel.position.set(posCoord, 0, roadCoord);
+                carModel.rotation.y = 0;
+            } else {
+                carModel.position.set(roadCoord, 0, posCoord);
+                carModel.rotation.y = Math.PI / 2;
+            }
+
+            scene.add(carModel);
+            cars.push({
+                mesh: carModel,
+                speed: 0.04 + Math.random() * 0.04,
+                direction: Math.random() > 0.5 ? 1 : -1,
+                axis: axis
+            });
+        }
+
+        const SAVE_KEY = 'mossari_town_centered_roads_v1';
         function saveGame() {
             localStorage.setItem(SAVE_KEY, JSON.stringify({
                 balance: playerBalance,
@@ -386,11 +401,11 @@
             }));
         }
 
-        // Генерация дорожной сети для большой карты
+        // Генерация дорог по центру квадратов (сетка кварталов)
         function generateRoadLayout() {
             const items = [];
-            const districtSize = 7.2;
-            const minC = -86.4; // Расширенные границы в 2 раза
+            const districtSize = 9.6; // Размер квартала
+            const minC = -86.4;
             const maxC = 86.4;
 
             for (let x = minC; x <= maxC; x += CELL_SIZE) {
@@ -425,6 +440,7 @@
                         placedObjects.push({ type: d.type, mesh: m, isRoad: (d.type === 'road'), price: d.price || 0 });
                     });
                     updateBalanceUI();
+                    syncNPCCount();
                     return;
                 } catch(e) {}
             }
@@ -433,18 +449,29 @@
             roads.forEach(r => placedObjects.push(r));
 
             [
-                {t:'house', x:-14.4, z:-14.4}, {t:'mall', x:-6.0, z:-14.4}, {t:'admin', x:2.4, z:-14.4},
-                {t:'car_sport', x:-14.4, z:-7.2}, {t:'park', x:2.4, z:-7.2}, {t:'factory', x:-14.4, z:2.4}
+                {t:'house', x:-19.2, z:-19.2}, {t:'mall', x:-9.6, z:-19.2}, {t:'admin', x:4.8, z:-19.2},
+                {t:'car_sport', x:-19.2, z:-9.6}, {t:'park', x:4.8, z:-9.6}, {t:'factory', x:-19.2, z:4.8}
             ].forEach(b => {
                 const m = createModel(b.t); m.position.set(b.x, 0, b.z);
                 scene.add(m); placedObjects.push({ type: b.t, mesh: m, isRoad: false, price: 0 });
             });
 
-            // Запускаем больше NPC по всей новой карте
-            for (let i = 0; i < 25; i++) createNPC();
+            // Запускаем машины на дороги
+            for (let i = 0; i < 15; i++) createMovingCar('car_com');
 
+            syncNPCCount();
             saveGame();
             updateBalanceUI();
+        }
+
+        // Динамический подсчет жителей: чем больше домов, тем больше NPC
+        function syncNPCCount() {
+            const houseCount = placedObjects.filter(o => o.type === 'house').length;
+            const targetNPCs = Math.max(5, houseCount * 3); // 3 NPC на каждый дом
+
+            while (npcs.length < targetNPCs) {
+                createNPC();
+            }
         }
 
         function checkCollision(x, z, type, exclude = null) {
@@ -509,6 +536,7 @@
                         if (idx !== -1) { 
                             scene.remove(placedObjects[idx].mesh); 
                             placedObjects.splice(idx, 1); 
+                            syncNPCCount();
                             saveGame(); 
                         }
                     }
@@ -524,6 +552,7 @@
                         scene.add(m); 
                         const newObj = { type: currentTool, mesh: m, isRoad: (currentTool === 'road'), price: 0 };
                         placedObjects.push(newObj);
+                        syncNPCCount();
                         saveGame();
                     }
                 }
@@ -608,16 +637,35 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        // Анимация машин на дорогах и NPC на тротуарах
         function animate() {
             requestAnimationFrame(animate);
 
+            // Движение машин
+            cars.forEach(car => {
+                if (car.axis === 'x') {
+                    car.mesh.position.x += car.speed * car.direction;
+                    if (Math.abs(car.mesh.position.x) > 85) {
+                        car.direction *= -1;
+                        car.mesh.rotation.y += Math.PI;
+                    }
+                } else {
+                    car.mesh.position.z += car.speed * car.direction;
+                    if (Math.abs(car.mesh.position.z) > 85) {
+                        car.direction *= -1;
+                        car.mesh.rotation.y += Math.PI;
+                    }
+                }
+            });
+
+            // Движение NPC
             npcs.forEach(npc => {
                 if (npc.axis === 'x') {
                     npc.mesh.position.x += npc.speed * npc.direction;
-                    if (Math.abs(npc.mesh.position.x) > 82) npc.direction *= -1;
+                    if (Math.abs(npc.mesh.position.x) > 85) npc.direction *= -1;
                 } else {
                     npc.mesh.position.z += npc.speed * npc.direction;
-                    if (Math.abs(npc.mesh.position.z) > 82) npc.direction *= -1;
+                    if (Math.abs(npc.mesh.position.z) > 85) npc.direction *= -1;
                 }
             });
 
