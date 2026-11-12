@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mossari Town - Tycoon</title>
+    <title>Mossari Town - Ultimate Tycoon</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #1a1a24; color: #fff; user-select: none;
+            background-color: #181b24; color: #fff; user-select: none;
             -webkit-user-select: none; overscroll-behavior: none; touch-action: none;
         }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; touch-action: none; }
@@ -45,10 +45,10 @@
         .toolbar::-webkit-scrollbar { display: none; }
         .tool-btn {
             background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.08); border-radius: 14px;
-            padding: 8px 10px; flex: 0 0 auto; min-width: 65px; text-align: center; cursor: pointer; color: white; font-size: 10px; font-weight: 600;
+            padding: 8px 8px; flex: 0 0 auto; min-width: 60px; text-align: center; cursor: pointer; color: white; font-size: 10px; font-weight: 600;
         }
         .tool-btn.active { border-color: #c5a059; background: rgba(197, 160, 89, 0.2); transform: translateY(-2px); }
-        .tool-btn .icon { font-size: 18px; display: block; margin-bottom: 3px; }
+        .tool-btn .icon { font-size: 16px; display: block; margin-bottom: 2px; }
         .instruction { text-align: center; background: rgba(0,0,0,0.6); padding: 6px 14px; border-radius: 12px; font-size: 11px; margin-bottom: 4px; backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05); }
 
         #propertyModal {
@@ -79,20 +79,24 @@
     
     <div class="top-brand interactive">
         <span>mossari town</span>
-        <div class="money-counter">💰 <span id="balanceText">1,500</span> МР</div>
+        <div class="money-counter">💰 <span id="balanceText">999,999,999</span> МР</div>
     </div>
 
     <div class="ui-layer">
         <div></div>
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Нажмите на здание в режиме «Обзор», чтобы открыть рынок и настроить цену.</div>
+            <div class="instruction" id="instructionText">Мягкие тени активированы. Стройте и наслаждайтесь атмосферой!</div>
             
             <div id="buildPanel" class="build-panel-container interactive">
                 <div class="toolbar interactive">
                     <div class="tool-btn active" id="btn_house" onclick="setTool('house')"><span class="icon">🏠</span>Дом<br><small>100М</small></div>
                     <div class="tool-btn" id="btn_mall" onclick="setTool('mall')"><span class="icon">🏬</span>ТЦ<br><small>800М</small></div>
                     <div class="tool-btn" id="btn_admin" onclick="setTool('admin')"><span class="icon">🏢</span>Админ<br><small>500М</small></div>
-                    <div class="tool-btn" id="btn_auto" onclick="setTool('auto')"><span class="icon">🏎️</span>Авто<br><small>1200М</small></div>
+                    <div class="tool-btn" id="btn_car_eco" onclick="setTool('car_eco')"><span class="icon">🚗</span>Эконом<br><small>800М</small></div>
+                    <div class="tool-btn" id="btn_car_com" onclick="setTool('car_com')"><span class="icon">🚙</span>Комфорт<br><small>1.5K</small></div>
+                    <div class="tool-btn" id="btn_car_plus" onclick="setTool('car_plus')"><span class="icon">🚘</span>Комфорт+<br><small>2.6K</small></div>
+                    <div class="tool-btn" id="btn_car_prem" onclick="setTool('car_prem')"><span class="icon">🏎️</span>Премиум<br><small>4.5K</small></div>
+                    <div class="tool-btn" id="btn_car_sport" onclick="setTool('car_sport')"><span class="icon">🏁</span>Спорт<br><small>8.0K</small></div>
                     <div class="tool-btn" id="btn_clinic" onclick="setTool('clinic')"><span class="icon">🏥</span>Клиника<br><small>600М</small></div>
                     <div class="tool-btn" id="btn_factory" onclick="setTool('factory')"><span class="icon">🏭</span>Завод<br><small>400М</small></div>
                     <div class="tool-btn" id="btn_park" onclick="setTool('park')"><span class="icon">🌲</span>Парк<br><small>150М</small></div>
@@ -127,19 +131,23 @@
         const tg = window.Telegram.WebApp;
         try { tg.expand(); if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch(e) {}
 
-        let currentTool = 'house', interactionMode = 'view', draggedObject = null, selectedObject = null;
-        let cameraRadius = 35, cameraHeight = 28;
-        let playerBalance = 1500;
+        let currentTool = 'house', interactionMode = 'view', selectedObject = null;
+        let cameraRadius = 38, cameraHeight = 30;
+        let playerBalance = 999999999;
         const targetCenter = new THREE.Vector3(0, 0, 0);
 
         const buildingConfigs = {
-            house: { name: 'Жилой дом', size: {w:1, h:1}, cost: 100, income: 3 },
-            mall: { name: 'Торговый центр', size: {w:4, h:4}, cost: 800, income: 35 },
-            admin: { name: 'Администрация', size: {w:3, h:3}, cost: 500, income: 20 },
-            auto: { name: 'Автосалон', size: {w:3, h:3}, cost: 1200, income: 60 },
-            clinic: { name: 'Клиника', size: {w:2, h:2}, cost: 600, income: 25 },
-            factory: { name: 'Завод', size: {w:3, h:3}, cost: 400, income: 30 },
-            park: { name: 'Парк отдыха', size: {w:2, h:2}, cost: 150, income: 5 },
+            house: { name: 'Жилой дом с окнами', size: {w:1, h:1}, cost: 100, income: 15 },
+            mall: { name: 'Торговый центр', size: {w:4, h:4}, cost: 800, income: 150 },
+            admin: { name: 'Администрация города', size: {w:3, h:3}, cost: 500, income: 90 },
+            car_eco: { name: 'Машина: Эконом', size: {w:1, h:1}, cost: 800, income: 40 },
+            car_com: { name: 'Машина: Комфорт', size: {w:1, h:1}, cost: 1500, income: 85 },
+            car_plus: { name: 'Машина: Комфорт+', size: {w:1, h:1}, cost: 2600, income: 140 },
+            car_prem: { name: 'Машина: Премиум', size: {w:1, h:1}, cost: 4500, income: 250 },
+            car_sport: { name: 'Спорткар', size: {w:1, h:1}, cost: 8000, income: 500 },
+            clinic: { name: 'Медицинская клиника', size: {w:2, h:2}, cost: 600, income: 110 },
+            factory: { name: 'Промышленный завод', size: {w:3, h:3}, cost: 400, income: 120 },
+            park: { name: 'Городской парк', size: {w:2, h:2}, cost: 150, income: 30 },
             road: { name: 'Дорога', size: {w:1, h:1}, cost: 0, income: 0 }
         };
 
@@ -153,7 +161,7 @@
             document.getElementById('btnModeBuild').classList.toggle('active', mode === 'build');
             document.getElementById('buildPanel').classList.toggle('active', mode === 'build');
             document.getElementById('instructionText').innerText = mode === 'view' ? 
-                'Режим обзора: кликните на постройку для открытия рынка.' : 
+                'Режим обзора: кликните на постройку или машину для рынка.' : 
                 'Режим постройки: выбирайте объекты внизу панели.';
             if (typeof gridHelper !== 'undefined') gridHelper.visible = (mode === 'build');
             if (mode === 'build') closeModal();
@@ -168,9 +176,9 @@
 
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a2420);
+        scene.background = new THREE.Color(0x181b24);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
         function updateCameraPosition() {
             camera.position.set(targetCenter.x, cameraHeight, targetCenter.z + cameraRadius);
             camera.lookAt(targetCenter);
@@ -180,38 +188,50 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // ВКЛЮЧЕНИЕ ТЕНЕЙ В РЕНДЕРЕРЕ
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Мягкие тени
         container.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const dirLight = new THREE.DirectionalLight(0xfff8ee, 0.9);
-        dirLight.position.set(30, 40, 30);
+        // МЯГКОЕ ОСВЕЩЕНИЕ (Ambient + Directional с тенями)
+        const ambientLight = new THREE.AmbientLight(0xddeeff, 0.6);
+        scene.add(ambientLight);
+
+        // Полусферический свет для имитации мягкого света от неба и отражения от травы
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x3d7351, 0.4);
+        hemiLight.position.set(0, 50, 0);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
+        dirLight.position.set(35, 50, 25);
         dirLight.castShadow = true;
+        
+        // Настройка качества и мягкости теней
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 150;
+        const d = 45;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.bias = -0.0005; // Убирает артефакты теней
         scene.add(dirLight);
 
-        const canvasTx = document.createElement('canvas');
-        canvasTx.width = canvasTx.height = 512;
-        const ctxTx = canvasTx.getContext('2d');
-        ctxTx.fillStyle = '#3a6148'; ctxTx.fillRect(0, 0, 512, 512);
-        for (let i = 0; i < 25000; i++) {
-            ctxTx.fillStyle = Math.random() > 0.5 ? '#487556' : '#2f523b';
-            ctxTx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
-        }
-        const grassTex = new THREE.CanvasTexture(canvasTx);
-        grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
-        grassTex.repeat.set(25, 25);
-
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.85 }));
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x3d7351, roughness: 0.9, flatShading: true });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(100, 100, 10, 10), groundMat);
         ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
+        ground.receiveShadow = true; // Земля принимает тени от всех объектов и NPC
         scene.add(ground);
 
-        const gridHelper = new THREE.GridHelper(96, 80, 0xc5a059, 0x457555);
+        const gridHelper = new THREE.GridHelper(96, 80, 0xc5a059, 0x335544);
         gridHelper.position.y = 0.02;
         gridHelper.visible = false;
         scene.add(gridHelper);
 
-        const placedObjects = [], CELL_SIZE = 1.2;
+        const placedObjects = [], npcs = [], CELL_SIZE = 1.2;
         const getObjectSize = (t) => buildingConfigs[t]?.size || {w:1, h:1};
 
         function createModel(type) {
@@ -220,57 +240,125 @@
             inner.position.set((sz.w * CELL_SIZE)/2 - CELL_SIZE/2, 0, (sz.h * CELL_SIZE)/2 - CELL_SIZE/2);
             group.add(inner);
 
-            const mat = (col, r=0.5, m=0) => new THREE.MeshStandardMaterial({ color: col, roughness: r, metalness: m });
+            const lpMat = (col, r=0.8) => new THREE.MeshStandardMaterial({ color: col, roughness: r, flatShading: true });
 
             if (type === 'road') {
-                const r = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.03, 1.2), mat(0x44444d, 0.9));
-                r.position.y = 0.015; r.receiveShadow = true;
-                const s = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.035, 0.6), mat(0xcccccc));
-                s.position.y = 0.02; inner.add(r, s);
-            } else if (type === 'house') {
-                const b = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), mat(0xf5f5f5, 0.2));
-                b.position.y = 0.55; b.castShadow = true;
-                const rf = new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.8, 4), mat(0xc84b31, 0.4));
-                rf.position.y = 1.5; rf.rotation.y = Math.PI / 4; rf.castShadow = true;
-                inner.add(b, rf);
-            } else if (type === 'mall') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(4.4, 3.2, 4.4), mat(0x181820, 0.2));
-                body.position.y = 1.6; body.castShadow = true;
-                const rf = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.25, 4.6), mat(0xc5a059, 0.2, 0.6));
-                rf.position.y = 3.32; rf.castShadow = true;
-                inner.add(body, rf);
-            } else if (type === 'admin') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.6, 3.2), mat(0x2a3530, 0.4));
-                body.position.y = 1.3; body.castShadow = true;
-                const sp = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.2, 4), mat(0xc5a059, 0.2, 0.7));
-                sp.position.y = 3.55; inner.add(body, sp);
-            } else if (type === 'auto') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.0, 3.4), mat(0x111118, 0.1, 0.8));
-                body.position.y = 1.0; body.castShadow = true;
-                const glass = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.0, 3.0), mat(0x33b5e5, 0.1));
-                glass.position.y = 1.2; inner.add(body, glass);
-            } else if (type === 'clinic') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2.2), mat(0xdddddd, 0.1));
-                body.position.y = 1.1; body.castShadow = true;
-                const cross = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.2), mat(0xff3838, 0.2));
-                cross.position.set(0, 1.8, 1.15); inner.add(body, cross);
-            } else if (type === 'factory') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, 3.2), mat(0x55555c, 0.8));
-                body.position.y = 1.1; body.castShadow = true;
-                const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 2.0), mat(0xcc3333, 0.5));
-                pipe.position.set(1.0, 2.2, 1.0); inner.add(body, pipe);
-            } else if (type === 'park') {
-                const base = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.1, 2.3), mat(0x2e8b57, 0.9));
-                base.position.y = 0.05;
-                const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.6), mat(0x6e4727));
-                tr.position.set(0.5, 0.3, 0.5);
-                const lf = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4), mat(0x3cb371));
-                lf.position.set(0.5, 0.7, 0.5); inner.add(base, tr, lf);
+                const r = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.02, 1.2), lpMat(0x383842, 0.9));
+                r.position.y = 0.01; r.receiveShadow = true;
+                const s = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.025, 0.5), lpMat(0xdddddd));
+                s.position.y = 0.015; inner.add(r, s);
+            } 
+            else if (type === 'house') {
+                const base = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.0), lpMat(0xebe2d0));
+                base.position.y = 0.4; base.castShadow = true; base.receiveShadow = true;
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.7, 4), lpMat(0xb83a2b));
+                roof.position.y = 1.15; roof.rotation.y = Math.PI / 4; roof.castShadow = true;
+                
+                const door = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.05), lpMat(0x5a3d28));
+                door.position.set(0, 0.2, 0.51); door.castShadow = true;
+                const win1 = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.05), lpMat(0x3498db));
+                win1.position.set(-0.25, 0.55, 0.51);
+                const win2 = win1.clone(); win2.position.x = 0.25;
+                inner.add(base, roof, door, win1, win2);
+            } 
+            else if (type === 'mall') {
+                const body = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.5, 4.2), lpMat(0x2d3238));
+                body.position.y = 1.25; body.castShadow = true; body.receiveShadow = true;
+                const glass = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.2, 4.25), lpMat(0x00cec9, 0.1));
+                glass.position.y = 0.9;
+                const topBox = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 2.4), lpMat(0x4080c0));
+                topBox.position.y = 3.1; topBox.castShadow = true;
+                const sign = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.3, 0.3), lpMat(0xf1c40f));
+                sign.position.set(0, 2.2, 2.15);
+                inner.add(body, glass, topBox, sign);
+            } 
+            else if (type === 'admin') {
+                const base = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.2, 3.0), lpMat(0x7f8c8d));
+                base.position.y = 1.1; base.castShadow = true; base.receiveShadow = true;
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.2, 4), lpMat(0x34495e));
+                roof.position.y = 2.8; roof.rotation.y = Math.PI / 4; roof.castShadow = true;
+                const entry = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 3.1), lpMat(0xbdc3c7));
+                entry.position.set(0, 0.5, 0); entry.castShadow = true;
+                inner.add(base, roof, entry);
+            } 
+            else if (type.startsWith('car_')) {
+                const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 1.2), lpMat(
+                    type === 'car_eco' ? 0x95a5a6 : (type === 'car_com' ? 0x2980b9 : (type === 'car_plus' ? 0x27ae60 : (type === 'car_prem' ? 0x2c3e50 : 0xe74c3c)))
+                ));
+                chassis.position.y = 0.25; chassis.castShadow = true; chassis.receiveShadow = true;
+                
+                const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.28, 0.7), lpMat(0x1abc9c));
+                cabin.position.set(0, 0.52, -0.05); cabin.castShadow = true;
+                
+                const wheelGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.75, 6);
+                wheelGeo.rotateX(Math.PI / 2);
+                const wheels = new THREE.Mesh(wheelGeo, lpMat(0x111111));
+                wheels.position.y = 0.12; wheels.castShadow = true;
+
+                if (type === 'car_sport') {
+                    cabin.scale.set(0.9, 0.7, 1.1);
+                    const spoiler = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.05, 0.15), lpMat(0xf1c40f));
+                    spoiler.position.set(0, 0.5, 0.55); spoiler.castShadow = true;
+                    inner.add(spoiler);
+                }
+
+                inner.add(chassis, cabin, wheels);
+            }
+            else if (type === 'clinic') {
+                const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.0, 2.2), lpMat(0xecf0f1));
+                body.position.y = 1.0; body.castShadow = true; body.receiveShadow = true;
+                const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.25, 0.25), lpMat(0xe74c3c));
+                crossH.position.set(0, 1.5, 1.15);
+                const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), lpMat(0xe74c3c));
+                crossV.position.set(0, 1.5, 1.15);
+                inner.add(body, crossH, crossV);
+            } 
+            else if (type === 'factory') {
+                const body = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.8, 3.0), lpMat(0x7f8c8d));
+                body.position.y = 0.9; body.castShadow = true; body.receiveShadow = true;
+                const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 2.2, 5), lpMat(0xd35400));
+                pipe.position.set(0.9, 2.0, 0.9); pipe.castShadow = true;
+                inner.add(body, pipe);
+            } 
+            else if (type === 'park') {
+                const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 2.2), lpMat(0x27ae60));
+                base.position.y = 0.05; base.receiveShadow = true;
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.4, 4), lpMat(0x795548));
+                trunk.position.set(0.5, 0.25, 0.5); trunk.castShadow = true;
+                const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.8, 4), lpMat(0x1e8449));
+                leaves.position.set(0.5, 0.8, 0.5); leaves.castShadow = true;
+                inner.add(base, trunk, leaves);
             }
             return group;
         }
 
-        const SAVE_KEY = 'mossari_town_tycoon_v3';
+        // Создание NPC с поддержкой отбрасывания теней
+        function createNPC() {
+            const npcGroup = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, roughness: 0.7, flatShading: true });
+            
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), bodyMat);
+            head.position.y = 0.45;
+            head.castShadow = true; // NPC теперь отбрасывают тень
+            
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.25, 0.1), bodyMat);
+            torso.position.y = 0.25;
+            torso.castShadow = true; // NPC теперь отбрасывают тень
+
+            npcGroup.add(head, torso);
+            
+            const posRange = 30;
+            npcGroup.position.set((Math.random() - 0.5) * posRange, 0, (Math.random() - 0.5) * posRange);
+            scene.add(npcGroup);
+            
+            npcs.push({
+                mesh: npcGroup,
+                speed: 0.02 + Math.random() * 0.03,
+                direction: new THREE.Vector3((Math.random() - 0.5), 0, (Math.random() - 0.5)).normalize()
+            });
+        }
+
+        const SAVE_KEY = 'mossari_town_shadows_v1';
         function saveGame() {
             localStorage.setItem(SAVE_KEY, JSON.stringify({
                 balance: playerBalance,
@@ -283,7 +371,7 @@
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
-                    playerBalance = data.balance || 1500;
+                    playerBalance = 999999999;
                     data.objects.forEach(d => {
                         const m = createModel(d.type);
                         m.position.set(d.x, 0, d.z);
@@ -305,11 +393,14 @@
             }
             [
                 {t:'house', x:-14.4, z:-14.4}, {t:'mall', x:-6.0, z:-14.4}, {t:'admin', x:2.4, z:-14.4},
-                {t:'park', x:-14.4, z:-7.2}, {t:'house', x:2.4, z:-7.2}, {t:'factory', x:-14.4, z:2.4}
+                {t:'car_sport', x:-14.4, z:-7.2}, {t:'park', x:2.4, z:-7.2}, {t:'factory', x:-14.4, z:2.4}
             ].forEach(b => {
                 const m = createModel(b.t); m.position.set(b.x, 0, b.z);
                 scene.add(m); placedObjects.push({ type: b.t, mesh: m, isRoad: false, price: 0 });
             });
+
+            for (let i = 0; i < 10; i++) createNPC();
+
             saveGame();
             updateBalanceUI();
         }
@@ -375,19 +466,10 @@
                         });
                         if (idx !== -1) { 
                             scene.remove(placedObjects[idx].mesh); 
-                            const removedType = placedObjects[idx].type;
                             placedObjects.splice(idx, 1); 
-                            playerBalance += Math.floor((buildingConfigs[removedType]?.cost || 100) * 0.5);
-                            updateBalanceUI();
                             saveGame(); 
                         }
                     }
-                    return;
-                }
-
-                const config = buildingConfigs[currentTool];
-                if (playerBalance < config.cost) {
-                    alert('Недостаточно монет для покупки!');
                     return;
                 }
 
@@ -396,8 +478,6 @@
                     const x = Math.round(hitsGround[0].point.x / CELL_SIZE) * CELL_SIZE;
                     const z = Math.round(hitsGround[0].point.z / CELL_SIZE) * CELL_SIZE;
                     if (!checkCollision(x, z, currentTool)) {
-                        playerBalance -= config.cost;
-                        updateBalanceUI();
                         const m = createModel(currentTool); m.position.set(x, 0, z);
                         scene.add(m); 
                         const newObj = { type: currentTool, mesh: m, isRoad: false, price: 0 };
@@ -463,18 +543,8 @@
         }
 
         setInterval(() => {
-            let totalIncome = 0;
-            placedObjects.forEach(obj => {
-                if (obj.isRoad) return;
-                const config = buildingConfigs[obj.type];
-                if (!config) return;
-                const dist = Math.hypot(obj.mesh.position.x, obj.mesh.position.z);
-                const mult = dist < 10 ? 2.5 : (dist < 25 ? 1.5 : 1.0);
-                totalIncome += Math.round(config.income * mult);
-            });
-            playerBalance += totalIncome;
+            playerBalance = 999999999;
             updateBalanceUI();
-            saveGame();
         }, 1000);
 
         window.addEventListener('touchstart', onPointerDown, {passive: false});
@@ -496,10 +566,19 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        (function animate() {
+        function animate() {
             requestAnimationFrame(animate);
+
+            npcs.forEach(npc => {
+                npc.mesh.position.addScaledVector(npc.direction, npc.speed);
+                if (Math.abs(npc.mesh.position.x) > 35 || Math.abs(npc.mesh.position.z) > 35) {
+                    npc.direction.negate();
+                }
+            });
+
             renderer.render(scene, camera);
-        })();
+        }
+        animate();
     </script>
 </body>
 </html>
