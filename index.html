@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mossari Town - Ultimate Tycoon</title>
+    <title>Mossari Town - Pocket City Style</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body, html {
@@ -85,7 +85,7 @@
     <div class="ui-layer">
         <div></div>
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">Чем больше домов вы строите, тем больше жителей появляется на улицах!</div>
+            <div class="instruction" id="instructionText">Стройте кварталы и дороги в стиле Pocket City 2. Больше домов — больше жителей на улицах!</div>
             
             <div id="buildPanel" class="build-panel-container interactive">
                 <div class="toolbar interactive">
@@ -138,9 +138,9 @@
         const targetCenter = new THREE.Vector3(0, 0, 0);
 
         const buildingConfigs = {
-            house: { name: 'Жилой дом с окнами', size: {w:1, h:1}, cost: 100, income: 15 },
+            house: { name: 'Жилой дом', size: {w:1, h:1}, cost: 100, income: 15 },
             mall: { name: 'Торговый центр', size: {w:4, h:4}, cost: 800, income: 150 },
-            admin: { name: 'Администрация города', size: {w:3, h:3}, cost: 500, income: 90 },
+            admin: { name: 'Администрация', size: {w:3, h:3}, cost: 500, income: 90 },
             car_eco: { name: 'Машина: Эконом', size: {w:1, h:1}, cost: 800, income: 40 },
             car_com: { name: 'Машина: Комфорт', size: {w:1, h:1}, cost: 1500, income: 85 },
             car_plus: { name: 'Машина: Комфорт+', size: {w:1, h:1}, cost: 2600, income: 140 },
@@ -325,7 +325,7 @@
             return group;
         }
 
-        // Создание детализированных NPC
+        // Создание детального NPC
         function createNPC() {
             const npcGroup = new THREE.Group();
             const shirtMat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, roughness: 0.7, flatShading: true });
@@ -365,7 +365,7 @@
             });
         }
 
-        // Создание машин, ездящих по дорогам
+        // Спавн машин строго на дорогах
         function createMovingCar(type = 'car_com') {
             const carModel = createModel(type);
             const roadSpacing = 9.6;
@@ -393,7 +393,7 @@
             });
         }
 
-        const SAVE_KEY = 'mossari_town_centered_roads_v1';
+        const SAVE_KEY = 'mossari_town_pocket_style_v1';
         function saveGame() {
             localStorage.setItem(SAVE_KEY, JSON.stringify({
                 balance: playerBalance,
@@ -401,10 +401,10 @@
             }));
         }
 
-        // Генерация дорог по центру квадратов (сетка кварталов)
+        // Генерация квартальной сетки дорог (Pocket City стиль)
         function generateRoadLayout() {
             const items = [];
-            const districtSize = 9.6; // Размер квартала
+            const districtSize = 9.6;
             const minC = -86.4;
             const maxC = 86.4;
 
@@ -456,7 +456,6 @@
                 scene.add(m); placedObjects.push({ type: b.t, mesh: m, isRoad: false, price: 0 });
             });
 
-            // Запускаем машины на дороги
             for (let i = 0; i < 15; i++) createMovingCar('car_com');
 
             syncNPCCount();
@@ -464,10 +463,10 @@
             updateBalanceUI();
         }
 
-        // Динамический подсчет жителей: чем больше домов, тем больше NPC
+        // Динамическое число NPC в зависимости от количества построенных домов
         function syncNPCCount() {
             const houseCount = placedObjects.filter(o => o.type === 'house').length;
-            const targetNPCs = Math.max(5, houseCount * 3); // 3 NPC на каждый дом
+            const targetNPCs = Math.max(5, houseCount * 3);
 
             while (npcs.length < targetNPCs) {
                 createNPC();
@@ -637,11 +636,10 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Анимация машин на дорогах и NPC на тротуарах
+        // Анимация передвижения машин и NPC
         function animate() {
             requestAnimationFrame(animate);
 
-            // Движение машин
             cars.forEach(car => {
                 if (car.axis === 'x') {
                     car.mesh.position.x += car.speed * car.direction;
@@ -658,7 +656,6 @@
                 }
             });
 
-            // Движение NPC
             npcs.forEach(npc => {
                 if (npc.axis === 'x') {
                     npc.mesh.position.x += npc.speed * npc.direction;
