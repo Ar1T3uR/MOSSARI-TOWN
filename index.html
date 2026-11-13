@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mossari Town - Pocket City Advanced AI & Economy</title>
+    <title>Mossari Town - Pocket City Inside Blocks</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body, html {
@@ -85,7 +85,7 @@
     <div class="ui-layer">
         <div></div>
         <div class="bottom-ui">
-            <div class="instruction" id="instructionText">ИИ-жители и динамические цены: стоимость земли зависит от плотности и престижа!</div>
+            <div class="instruction" id="instructionText">Всё закладывается строго внутри квадратов кварталов!</div>
             
             <div id="buildPanel" class="build-panel-container interactive">
                 <div class="toolbar interactive">
@@ -139,15 +139,15 @@
 
         const buildingConfigs = {
             house: { name: 'Жилой дом', size: {w:1, h:1}, cost: 100, income: 15 },
-            mall: { name: 'Торговый центр', size: {w:4, h:4}, cost: 800, income: 150 },
-            admin: { name: 'Администрация', size: {w:3, h:3}, cost: 500, income: 90 },
+            mall: { name: 'Торговый центр', size: {w:2, h:2}, cost: 800, income: 150 },
+            admin: { name: 'Администрация', size: {w:2, h:2}, cost: 500, income: 90 },
             car_eco: { name: 'Машина: Эконом', size: {w:1, h:1}, cost: 800, income: 40 },
             car_com: { name: 'Машина: Комфорт', size: {w:1, h:1}, cost: 1500, income: 85 },
             car_plus: { name: 'Машина: Комфорт+', size: {w:1, h:1}, cost: 2600, income: 140 },
             car_prem: { name: 'Машина: Премиум', size: {w:1, h:1}, cost: 4500, income: 250 },
             car_sport: { name: 'Спорткар', size: {w:1, h:1}, cost: 8000, income: 500 },
             clinic: { name: 'Медицинская клиника', size: {w:2, h:2}, cost: 600, income: 110 },
-            factory: { name: 'Промышленный завод', size: {w:3, h:3}, cost: 400, income: 120 },
+            factory: { name: 'Промышленный завод', size: {w:2, h:2}, cost: 400, income: 120 },
             park: { name: 'Городской парк', size: {w:2, h:2}, cost: 150, income: 30 },
             road: { name: 'Дорога', size: {w:1, h:1}, cost: 0, income: 0 }
         };
@@ -163,7 +163,7 @@
             document.getElementById('buildPanel').classList.toggle('active', mode === 'build');
             document.getElementById('instructionText').innerText = mode === 'view' ? 
                 'Режим обзора: кликните на постройку для оценки стоимости земли.' : 
-                'Режим постройки: выбирайте объекты внизу панели.';
+                'Режим постройки: все объекты и дороги размещаются внутри квадратов!';
             if (typeof gridHelper !== 'undefined') gridHelper.visible = (mode === 'build');
             if (mode === 'build') closeModal();
         }
@@ -212,7 +212,7 @@
         gridHelper.visible = false;
         scene.add(gridHelper);
 
-        const placedObjects = [], npcs = [], cars = [], CELL_SIZE = 2.0;
+        const placedObjects = [], npcs = [], cars = [], CELL_SIZE = 3.0;
         const getObjectSize = (t) => buildingConfigs[t]?.size || {w:1, h:1};
 
         function createModel(type) {
@@ -224,71 +224,79 @@
             const lpMat = (col, r=0.8) => new THREE.MeshStandardMaterial({ color: col, roughness: r, flatShading: true });
 
             if (type === 'road') {
-                const r = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.02, 2.0), lpMat(0x383842, 0.9));
+                const r = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.02, 2.6), lpMat(0x383842, 0.9));
                 r.position.y = 0.01; r.receiveShadow = true;
-                const s = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.025, 0.8), lpMat(0xdddddd));
+                const s = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.025, 1.0), lpMat(0xdddddd));
                 s.position.y = 0.015; inner.add(r, s);
             } 
             else if (type === 'house') {
-                const base = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.2, 1.6), lpMat(0xebe2d0));
-                base.position.y = 0.6; base.castShadow = true; base.receiveShadow = true;
-                const roof = new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.9, 4), lpMat(0xb83a2b));
-                roof.position.y = 1.65; roof.rotation.y = Math.PI / 4; roof.castShadow = true;
+                const base = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 2.4), lpMat(0xebe2d0));
+                base.position.y = 0.9; base.castShadow = true; base.receiveShadow = true;
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.2, 4), lpMat(0xb83a2b));
+                roof.position.y = 2.4; roof.rotation.y = Math.PI / 4; roof.castShadow = true;
                 inner.add(base, roof);
             } 
             else if (type === 'mall') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(7.0, 3.0, 7.0), lpMat(0x2d3238));
-                body.position.y = 1.5; body.castShadow = true; body.receiveShadow = true;
+                const body = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.5, 5.6), lpMat(0x2d3238));
+                body.position.y = 1.75; body.castShadow = true; body.receiveShadow = true;
                 inner.add(body);
             } 
             else if (type === 'admin') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.5, 5.2), lpMat(0x7f8c8d));
-                body.position.y = 1.75; body.castShadow = true; inner.add(body);
+                const body = new THREE.Mesh(new THREE.BoxGeometry(5.6, 4.0, 5.6), lpMat(0x7f8c8d));
+                body.position.y = 2.0; body.castShadow = true; inner.add(body);
             } 
             else if (type.startsWith('car_')) {
-                const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.4, 1.6), lpMat(0x2980b9));
-                chassis.position.y = 0.3; chassis.castShadow = true;
-                const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.9), lpMat(0x1abc9c));
-                cabin.position.set(0, 0.65, -0.1); cabin.castShadow = true;
+                const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 2.2), lpMat(0x2980b9));
+                chassis.position.y = 0.4; chassis.castShadow = true;
+                const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 1.2), lpMat(0x1abc9c));
+                cabin.position.set(0, 0.85, -0.1); cabin.castShadow = true;
                 inner.add(chassis, cabin);
             }
             else if (type === 'clinic') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(3.8, 2.5, 3.8), lpMat(0xecf0f1));
-                body.position.y = 1.25; body.castShadow = true; inner.add(body);
+                const body = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.0, 5.6), lpMat(0xecf0f1));
+                body.position.y = 1.5; body.castShadow = true; inner.add(body);
             } 
             else if (type === 'factory') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.5, 5.2), lpMat(0x7f8c8d));
-                body.position.y = 1.25; body.castShadow = true; inner.add(body);
+                const body = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.0, 5.6), lpMat(0x7f8c8d));
+                body.position.y = 1.5; body.castShadow = true; inner.add(body);
             } 
             else if (type === 'park') {
-                const base = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.1, 3.8), lpMat(0x27ae60));
+                const base = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.1, 5.6), lpMat(0x27ae60));
                 base.position.y = 0.05; inner.add(base);
             }
             return group;
         }
 
-        // Динамический расчет стоимости земли на основе плотности застройки вокруг объекта
+        // Абсолютно все объекты теперь привязываются строго СЕРЕДИНУ квадратов (ячеек) сетки
+        function getSnappedCoordinates(rawX, rawZ) {
+            const gridX = Math.floor(rawX / CELL_SIZE);
+            const gridZ = Math.floor(rawZ / CELL_SIZE);
+            return {
+                x: gridX * CELL_SIZE + CELL_SIZE * 0.5,
+                z: gridZ * CELL_SIZE + CELL_SIZE * 0.5
+            };
+        }
+
         function calculateLandValue(obj) {
             let nearbyBuildings = 0;
             placedObjects.forEach(other => {
                 if (other === obj || other.isRoad) return;
                 const dist = Math.hypot(other.mesh.position.x - obj.mesh.position.x, other.mesh.position.z - obj.mesh.position.z);
-                if (dist < 15) nearbyBuildings++; // радиус влияния плотности
+                if (dist < 18) nearbyBuildings++;
             });
             const baseCost = buildingConfigs[obj.type]?.cost || 100;
-            return baseCost * 2 + nearbyBuildings * 150; // Динамическая цена растет от плотности соседних построек
+            return baseCost * 2 + nearbyBuildings * 180;
         }
 
-        // Умные NPC с целевым поиском пути (ИИ жителей)
         function createNPC() {
             const npcGroup = new THREE.Group();
             const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, flatShading: true });
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), bodyMat);
-            head.position.y = 0.6; head.castShadow = true;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.18), bodyMat);
+            head.position.y = 0.7; head.castShadow = true;
             npcGroup.add(head);
             
-            const roadCoord = (Math.floor(Math.random() * 6) - 3) * 12.0;
-            const offset = Math.random() > 0.5 ? 1.2 : -1.2;
+            const roadCoord = (Math.floor(Math.random() * 8) - 4) * CELL_SIZE;
+            const offset = Math.random() > 0.5 ? 1.0 : -1.0;
             const axis = Math.random() > 0.5 ? 'x' : 'z';
             const dir = Math.random() > 0.5 ? 1 : -1;
 
@@ -299,18 +307,12 @@
             }
 
             scene.add(npcGroup);
-            npcs.push({ 
-                mesh: npcGroup, 
-                speed: 0.02 + Math.random() * 0.02, 
-                direction: dir, 
-                axis: axis,
-                targetWork: null // ИИ цель (например, рабочий путь к ТЦ или заводу)
-            });
+            npcs.push({ mesh: npcGroup, speed: 0.02 + Math.random() * 0.02, direction: dir, axis: axis });
         }
 
         function createMovingCar() {
             const carModel = createModel('car_com');
-            const roadCoord = (Math.floor(Math.random() * 6) - 3) * 12.0;
+            const roadCoord = (Math.floor(Math.random() * 8) - 4) * CELL_SIZE;
             const axis = Math.random() > 0.5 ? 'x' : 'z';
             const dir = Math.random() > 0.5 ? 1 : -1;
 
@@ -326,7 +328,7 @@
             cars.push({ mesh: carModel, speed: 0.04 + Math.random() * 0.03, direction: dir, axis: axis });
         }
 
-        const SAVE_KEY = 'mossari_town_ai_economy_v1';
+        const SAVE_KEY = 'mossari_town_inside_blocks_v1';
         function saveGame() {
             localStorage.setItem(SAVE_KEY, JSON.stringify({
                 balance: playerBalance,
@@ -353,20 +355,21 @@
                 } catch(e) {}
             }
 
-            const roadSpacing = 12.0;
-            for (let x = -60; x <= 60; x += CELL_SIZE) {
-                for (let z = -60; z <= 60; z += CELL_SIZE) {
-                    if (Math.abs(x % roadSpacing) < 0.1 || Math.abs(z % roadSpacing) < 0.1) {
+            // Создаем дороги квадратами внутри ячеек
+            for (let x = -36; x <= 36; x += CELL_SIZE) {
+                for (let z = -36; z <= 36; z += CELL_SIZE) {
+                    if (Math.abs(x % (CELL_SIZE * 3)) < 0.1 || Math.abs(z % (CELL_SIZE * 3)) < 0.1) {
                         const m = createModel('road');
-                        m.position.set(x, 0, z);
+                        m.position.set(x + CELL_SIZE/2, 0, z + CELL_SIZE/2);
                         scene.add(m);
                         placedObjects.push({ type: 'road', mesh: m, isRoad: true });
                     }
                 }
             }
 
+            // Стартовые здания внутри квадратов
             [
-                {t:'house', x:-4.0, z:-4.0}, {t:'mall', x:-16.0, z:-16.0}, {t:'admin', x:4.0, z:4.0}
+                {t:'house', x:1.5, z:1.5}, {t:'mall', x:-7.5, z:-7.5}, {t:'admin', x:4.5, z:-7.5}
             ].forEach(b => {
                 const m = createModel(b.t); m.position.set(b.x, 0, b.z);
                 scene.add(m); placedObjects.push({ type: b.t, mesh: m, isRoad: false, price: 0 });
@@ -390,7 +393,7 @@
             return placedObjects.some(item => {
                 if (item === exclude) return false;
                 const osz = getObjectSize(item.type);
-                const [ox, oz, oxx, ozz] = [item.mesh.position.x, item.mesh.position.z, item.mesh.position.x + osz.w * CELL_SIZE, item.mesh.position.z + osz.h * CELL_SIZE];
+                const [ox, oz, oxx, ozz] = [item.mesh.position.x - CELL_SIZE/2, item.mesh.position.z - CELL_SIZE/2, item.mesh.position.x - CELL_SIZE/2 + osz.w * CELL_SIZE, item.mesh.position.z - CELL_SIZE/2 + osz.h * CELL_SIZE];
                 return mx < oxx && mxx > ox && mz < ozz && mzz > oz;
             });
         }
@@ -440,7 +443,7 @@
                         placedObjects.forEach((item, i) => {
                             if (item.isRoad) return;
                             const sz = getObjectSize(item.type);
-                            const d = Math.hypot(hits[0].point.x - (item.mesh.position.x + sz.w*CELL_SIZE/2), hits[0].point.z - (item.mesh.position.z + sz.h*CELL_SIZE/2));
+                            const d = Math.hypot(hits[0].point.x - item.mesh.position.x, hits[0].point.z - item.mesh.position.z);
                             if (d < minDist) { minDist = d; idx = i; }
                         });
                         if (idx !== -1) { 
@@ -455,12 +458,14 @@
 
                 const hitsGround = raycaster.intersectObject(ground);
                 if (hitsGround.length > 0) {
-                    const x = Math.round(hitsGround[0].point.x / CELL_SIZE) * CELL_SIZE;
-                    const z = Math.round(hitsGround[0].point.z / CELL_SIZE) * CELL_SIZE;
-                    if (!checkCollision(x, z, currentTool)) {
-                        const m = createModel(currentTool); m.position.set(x, 0, z);
+                    const snapped = getSnappedCoordinates(hitsGround[0].point.x, hitsGround[0].point.z);
+                    const isRoad = (currentTool === 'road');
+                    
+                    if (!checkCollision(snapped.x - CELL_SIZE/2, snapped.z - CELL_SIZE/2, currentTool)) {
+                        const m = createModel(currentTool); 
+                        m.position.set(snapped.x, 0, snapped.z);
                         scene.add(m); 
-                        const newObj = { type: currentTool, mesh: m, isRoad: (currentTool === 'road'), price: 0 };
+                        const newObj = { type: currentTool, mesh: m, isRoad: isRoad, price: 0 };
                         placedObjects.push(newObj);
                         syncNPCCount();
                         saveGame();
@@ -472,11 +477,10 @@
             prevMouse = { x: p.clientX, y: p.clientY };
         }
 
-        // Открытие модального окна с динамической ценой земли
         function openPropertyModal(obj) {
             selectedObject = obj;
             const config = buildingConfigs[obj.type];
-            const dynamicValue = calculateLandValue(obj); // Динамическая оценка земли ИИ
+            const dynamicValue = calculateLandValue(obj);
             document.getElementById('modalObjName').innerText = config.name;
             document.getElementById('modalObjInfo').innerHTML = `Владелец: <b>Вы</b><br>Стоимость участка с учетом плотности: <b>${dynamicValue.toLocaleString()} МР</b><br>Доход: <b>+${config.income} монет / сек</b>`;
             document.getElementById('sellPriceInput').value = obj.price || dynamicValue;
@@ -544,7 +548,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Продвинутый анимационный цикл с ИИ-поведением жителей
         function animate() {
             requestAnimationFrame(animate);
 
@@ -564,7 +567,6 @@
                 }
             });
 
-            // ИИ NPC: Умное поведение движения и выбор путей к коммерческим объектам
             npcs.forEach(npc => {
                 if (npc.axis === 'x') {
                     npc.mesh.position.x += npc.speed * npc.direction;
